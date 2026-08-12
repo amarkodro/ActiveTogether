@@ -1,0 +1,23 @@
+# .NET
+bin/
+obj/
+*.user
+
+# .env - tajni podaci
+.env
+!.env-tajne.zip
+
+# Flutter
+**/build/
+.dart_tool/
+.flutter-plugin-dependencies
+**/ios/Flutter/
+**/android/.gradle/
+.vscode/launch.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Visual Studio
+.vs/
