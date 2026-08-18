@@ -80,8 +80,20 @@ namespace ActiveTogether.Services.Services
 
             var reservedLookup = reservedCounts.ToDictionary(x => x.ActivityId, x => x.Count);
 
+            var ratingStats = await _context.Ratings
+                .Where(r => activityIds.Contains(r.ActivityId))
+                .GroupBy(r => r.ActivityId)
+                .Select(g => new { ActivityId = g.Key, Average = g.Average(x => x.Score), Count = g.Count() })
+                .ToListAsync();
+
+            var ratingLookup = ratingStats.ToDictionary(x => x.ActivityId, x => x);
+
             var items = activities
-                .Select(a => MapToResponse(a, reservedLookup.GetValueOrDefault(a.Id)))
+                .Select(a =>
+                {
+                    var rating = ratingLookup.GetValueOrDefault(a.Id);
+                    return MapToResponse(a, reservedLookup.GetValueOrDefault(a.Id), rating?.Average, rating?.Count ?? 0);
+                })
                 .ToList();
 
             if (currentUserId.HasValue && (!string.IsNullOrWhiteSpace(search.Name) || search.CategoryId.HasValue || search.CityId.HasValue))
@@ -119,6 +131,10 @@ namespace ActiveTogether.Services.Services
             var reservedCount = await _context.Reservations
                 .CountAsync(r => r.ActivityId == id && r.Status != ReservationStatus.Cancelled);
 
+            var ratings = await _context.Ratings.Where(r => r.ActivityId == id).ToListAsync();
+            var averageRating = ratings.Count > 0 ? ratings.Average(r => r.Score) : (double?)null;
+            var ratingCount = ratings.Count;
+
             if (currentUserId.HasValue)
             {
                 _context.ActivityViews.Add(new ActivityView
@@ -130,7 +146,7 @@ namespace ActiveTogether.Services.Services
                 await _context.SaveChangesAsync();
             }
 
-            return MapToResponse(activity, reservedCount);
+            return MapToResponse(activity, reservedCount, averageRating, ratingCount);
         }
 
         public async Task<ActivityResponse> GetByIdAsync(int id)
@@ -146,7 +162,11 @@ namespace ActiveTogether.Services.Services
             var reservedCount = await _context.Reservations
                 .CountAsync(r => r.ActivityId == id && r.Status != ReservationStatus.Cancelled);
 
-            return MapToResponse(activity, reservedCount);
+            var ratings = await _context.Ratings.Where(r => r.ActivityId == id).ToListAsync();
+            var averageRating = ratings.Count > 0 ? ratings.Average(r => r.Score) : (double?)null;
+            var ratingCount = ratings.Count;
+
+            return MapToResponse(activity, reservedCount, averageRating, ratingCount);
         }
 
         public async Task<ActivityResponse> CreateAsync(ActivityUpsertRequest request, int organizerId)
@@ -261,7 +281,7 @@ namespace ActiveTogether.Services.Services
                 throw new NotFoundException($"Lokacija sa Id {request.LocationId} ne postoji.");
         }
 
-        private static ActivityResponse MapToResponse(Activity activity, int reservedCount)
+        private static ActivityResponse MapToResponse(Activity activity, int reservedCount, double? averageRating, int ratingCount)
         {
             return new ActivityResponse
             {
@@ -283,7 +303,9 @@ namespace ActiveTogether.Services.Services
                 IsFree = activity.IsFree,
                 Price = activity.Price,
                 ImageUrl = activity.ImageUrl,
-                Status = activity.Status.ToString()
+                Status = activity.Status.ToString(),
+                AverageRating = averageRating,
+                RatingCount = ratingCount
             };
         }
     }

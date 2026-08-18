@@ -5,6 +5,7 @@ import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
+import 'screens/user_shell_screen.dart';
 
 void main() {
   runApp(const AppRoot());
@@ -60,6 +61,9 @@ class AuthWrapper extends StatelessWidget {
       case AuthStatus.unauthenticated:
         return const LoginScreen();
       case AuthStatus.authenticated:
+        if (authProvider.currentUser?.role == 'Korisnik') {
+          return const UserShellScreen();
+        }
         return Scaffold(
           appBar: AppBar(
             title: const Text('ActiveTogether'),
@@ -72,7 +76,7 @@ class AuthWrapper extends StatelessWidget {
           ),
           body: Center(
             child: Text(
-              'Dobrodošli, ${authProvider.currentUser?.fullName ?? ''}!',
+              'Dobrodošli, ${authProvider.currentUser?.fullName ?? ''}! (Organizator dio dolazi uskoro)',
             ),
           ),
         );

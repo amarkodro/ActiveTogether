@@ -1,0 +1,282 @@
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import '../models/activity.dart';
+import '../services/activity_service.dart';
+import '../services/api_client.dart';
+import '../services/reservation_service.dart';
+import '../theme/app_colors.dart';
+
+class ActivityDetailScreen extends StatefulWidget {
+  final int activityId;
+
+  const ActivityDetailScreen({super.key, required this.activityId});
+
+  @override
+  State<ActivityDetailScreen> createState() => _ActivityDetailScreenState();
+}
+
+class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
+  late Future<Activity> _activityFuture;
+  bool _isReserving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _activityFuture = _load();
+  }
+
+  Future<Activity> _load() {
+    final apiClient = context.read<ApiClient>();
+    return ActivityService(apiClient).getById(widget.activityId);
+  }
+
+  Future<void> _reserve(Activity activity) async {
+    if (!activity.isFree) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Plaćanje premium aktivnosti dolazi u sljedećem koraku.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isReserving = true);
+    try {
+      final apiClient = context.read<ApiClient>();
+      await ReservationService(apiClient).create(activity.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Rezervacija je poslana. Čeka potvrdu organizatora.'),
+        ),
+      );
+      setState(() {
+        _activityFuture = _load();
+      });
+    } catch (e) {
+      String message = 'Rezervacija nije uspjela.';
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) setState(() => _isReserving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: FutureBuilder<Activity>(
+        future: _activityFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Greška: ${snapshot.error}'));
+          }
+
+          final activity = snapshot.data!;
+          final dateLabel = DateFormat(
+            'dd.MM.yyyy. HH:mm',
+          ).format(activity.dateTime);
+          final categoryColor = AppColors.categoryColor(activity.categoryName);
+
+          return SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  color: categoryColor.withValues(alpha: 0.12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                      Center(
+                        child: Text(
+                          AppColors.categoryEmoji(activity.categoryName),
+                          style: const TextStyle(fontSize: 56),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        activity.name,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        activity.organizerName,
+                        style: const TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _infoRow(Icons.calendar_today, dateLabel),
+                        _infoRow(
+                          Icons.location_on_outlined,
+                          '${activity.locationName}, ${activity.locationAddress}',
+                        ),
+                        _infoRow(
+                          Icons.people_outline,
+                          '${activity.reservedCount}/${activity.capacity} učesnika',
+                        ),
+                        _infoRow(
+                          Icons.payments_outlined,
+                          activity.isFree
+                              ? 'Besplatno'
+                              : '${activity.price?.toStringAsFixed(0)} KM',
+                          valueColor: activity.isFree
+                              ? AppColors.success
+                              : AppColors.warning,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Opis',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          activity.description,
+                          style: const TextStyle(color: Colors.black87),
+                        ),
+                        const SizedBox(height: 16),
+                        if (activity.averageRating != null) ...[
+                          const Text(
+                            'Ocjena',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${activity.averageRating!.toStringAsFixed(1)} (${activity.ratingCount} ocjena)',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: activity.fillRatio.clamp(0, 1),
+                            minHeight: 8,
+                            backgroundColor: Colors.grey.shade200,
+                            color: AppColors.capacityColor(activity.fillRatio),
+                          ),
+                        ),
+                        const SizedBox(height: 80),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+      bottomNavigationBar: FutureBuilder<Activity>(
+        future: _activityFuture,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const SizedBox.shrink();
+          final activity = snapshot.data!;
+          final full = activity.spotsLeft <= 0;
+
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: (_isReserving || full)
+                      ? null
+                      : () => _reserve(activity),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E3A8A),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: _isReserving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          full
+                              ? 'POPUNJENO'
+                              : (activity.isFree
+                                    ? 'REZERVIŠI'
+                                    : 'PLATI I REZERVIŠI'),
+                        ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String text, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.grey),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: TextStyle(
+              color: valueColor ?? Colors.black87,
+              fontWeight: valueColor != null ? FontWeight.w600 : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
