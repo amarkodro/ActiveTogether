@@ -32,9 +32,20 @@ namespace ActiveTogether.Services.Services
                 .Where(r => r.UserId == userId);
 
             query = ApplyCommonFilters(query, search);
+            return await ToPagedResultAsync(query, search);
+        }
+        public async Task<PagedResult<ReservationResponse>> GetForOrganizerAsync(int organizerId, ReservationSearchObject search)
+        {
+            var query = _context.Reservations
+                .Include(r => r.Activity)
+                .Include(r => r.User)
+                .Where(r => r.Activity!.OrganizerId == organizerId);
+
+            query = ApplyCommonFilters(query, search);
 
             return await ToPagedResultAsync(query, search);
         }
+
 
         public async Task<PagedResult<ReservationResponse>> GetForActivityAsync(int activityId, ReservationSearchObject search, int currentUserId, bool isAdmin)
         {

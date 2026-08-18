@@ -6,6 +6,7 @@ import 'services/auth_service.dart';
 import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/admin/admin_shell_screen.dart';
+import 'screens/organizer/organizer_shell_screen.dart';
 
 void main() {
   runApp(const AppRoot());
@@ -63,6 +64,9 @@ class AuthWrapper extends StatelessWidget {
       case AuthStatus.authenticated:
         if (authProvider.currentUser?.role == 'Admin') {
           return const AdminShellScreen();
+        }
+        if (authProvider.currentUser?.role == 'Organizator') {
+          return const OrganizerShellScreen();
         }
         return const PlaceholderHomeScreen();
     }

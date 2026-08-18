@@ -42,6 +42,14 @@ namespace ActiveTogether.WebAPI.Controllers
             return Ok(await _service.GetForActivityAsync(activityId, search, userId, isAdmin));
         }
 
+        [HttpGet("my-activities")]
+        [Authorize(Roles = Roles.Organizer)]
+        public async Task<IActionResult> GetForMyActivities([FromQuery] ReservationSearchObject search)
+        {
+            var organizerId = GetCurrentUserId();
+            return Ok(await _service.GetForOrganizerAsync(organizerId, search));
+        }
+
         [HttpPost]
         [Authorize(Roles = Roles.User + "," + Roles.Organizer)]
         public async Task<IActionResult> Create([FromBody] ReservationCreateRequest request)

@@ -12,5 +12,6 @@ namespace ActiveTogether.Services.Interfaces
         Task<ReservationResponse> CompleteAsync(int id, int currentUserId, bool isAdmin);
         Task<ReservationResponse> CancelAsync(int id, ReservationCancelRequest request, int currentUserId, bool isAdmin);
         Task<PagedResult<ReservationResponse>> GetAllAsync(ReservationSearchObject search);
+        Task<PagedResult<ReservationResponse>> GetForOrganizerAsync(int organizerId, ReservationSearchObject search);
     }
 }
