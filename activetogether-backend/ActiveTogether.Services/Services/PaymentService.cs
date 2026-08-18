@@ -14,10 +14,12 @@ namespace ActiveTogether.Services.Services
         private const string Currency = "eur";
 
         private readonly ActiveTogetherDbContext _context;
+        private readonly INotificationService _notificationService;
 
-        public PaymentService(ActiveTogetherDbContext context)
+        public PaymentService(ActiveTogetherDbContext context, INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         public async Task<PaymentInfoResponse> CreatePaymentIntentAsync(int reservationId, decimal amount)
@@ -75,6 +77,12 @@ namespace ActiveTogether.Services.Services
             payment.Status = PaymentStatus.Completed;
             payment.PaidAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            await _notificationService.NotifyAsync(
+              payment.Reservation!.UserId,
+              NotificationType.PaymentCompleted,
+              "Plaćanje uspješno",
+              $"Vaše plaćanje u iznosu od {payment.Amount:0.00} EUR je uspješno završeno.");
 
             return MapToResponse(payment, null);
         }

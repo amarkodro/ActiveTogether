@@ -41,6 +41,9 @@ namespace ActiveTogether.Services.Services
             if (search.CategoryId.HasValue)
                 query = query.Where(a => a.CategoryId == search.CategoryId.Value);
 
+            if (search.Status.HasValue)
+                query = query.Where(a => a.Status == search.Status.Value);
+
             if (search.ActivityTypeId.HasValue)
                 query = query.Where(a => a.ActivityTypeId == search.ActivityTypeId.Value);
 

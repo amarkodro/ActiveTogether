@@ -1,0 +1,58 @@
+import '../models/location_option.dart';
+import 'api_client.dart';
+
+class LocationService {
+  final ApiClient _apiClient;
+
+  LocationService(this._apiClient);
+
+  Future<List<LocationOption>> getAll() async {
+    final response = await _apiClient.dio.get('/api/Locations');
+    return (response.data as List)
+        .map((e) => LocationOption.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> create({
+    required String name,
+    required String address,
+    required int cityId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    await _apiClient.dio.post(
+      '/api/Locations',
+      data: {
+        'name': name,
+        'address': address,
+        'cityId': cityId,
+        'latitude': latitude,
+        'longitude': longitude,
+      },
+    );
+  }
+
+  Future<void> update(
+    int id, {
+    required String name,
+    required String address,
+    required int cityId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    await _apiClient.dio.put(
+      '/api/Locations/$id',
+      data: {
+        'name': name,
+        'address': address,
+        'cityId': cityId,
+        'latitude': latitude,
+        'longitude': longitude,
+      },
+    );
+  }
+
+  Future<void> delete(int id) async {
+    await _apiClient.dio.delete('/api/Locations/$id');
+  }
+}

@@ -70,6 +70,9 @@ namespace ActiveTogether.Services.Services
             var activity = await _context.Activities.FindAsync(request.ActivityId)
                 ?? throw new NotFoundException($"Aktivnost sa Id {request.ActivityId} ne postoji.");
 
+            var user = await _context.Users.FindAsync(userId)
+               ?? throw new NotFoundException("Korisnik ne postoji.");
+
             if (activity.Status != ActivityStatus.Active)
                 throw new BusinessException("Rezervacija je moguća samo za aktivne aktivnosti.");
 
@@ -108,6 +111,12 @@ namespace ActiveTogether.Services.Services
             {
                 response.Payment = await _paymentService.CreatePaymentIntentAsync(reservation.Id, activity.Price ?? 0);
             }
+
+            await _notificationService.NotifyAsync(
+                activity.OrganizerId,
+                NotificationType.NewReservation,
+                "Nova rezervacija",
+                $"Korisnik {user.FirstName} {user.LastName} je rezervisao aktivnost \"{activity.Name}\".");
 
             return response;
         }
@@ -157,6 +166,12 @@ namespace ActiveTogether.Services.Services
             reservation.CompletedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            await _notificationService.NotifyAsync(
+               reservation.UserId,
+               NotificationType.ReservationCompleted,
+               "Aktivnost završena",
+               $"Aktivnost \"{reservation.Activity!.Name}\" je završena. Ostavite ocjenu i komentar!");
 
             return await GetByIdWithMappingAsync(reservation.Id);
         }

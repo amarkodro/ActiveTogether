@@ -140,5 +140,51 @@ namespace ActiveTogether.Services.Services
                 ProfileImageUrl = user.ProfileImageUrl
             };
         }
+
+        public async Task<LoginResponse> RefreshTokenAsync(string refreshToken)
+        {
+            var token = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+
+            if (token is null || token.IsRevoked || token.ExpiresAt <= DateTime.UtcNow)
+                throw new UnauthorizedAccessException("Refresh token nije validan ili je istekao.");
+
+            token.IsRevoked = true;
+
+            var (accessToken, expiresAt) = GenerateAccessToken(token.User!);
+            var newRefreshToken = GenerateRefreshToken();
+
+            _context.RefreshTokens.Add(new RefreshToken
+            {
+                UserId = token.UserId,
+                Token = newRefreshToken,
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                IsRevoked = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+
+            return new LoginResponse
+            {
+                AccessToken = accessToken,
+                RefreshToken = newRefreshToken,
+                ExpiresAt = expiresAt,
+                User = MapToResponse(token.User!)
+            };
+        }
+
+        public async Task LogoutAsync(string refreshToken)
+        {
+            var token = await _context.RefreshTokens
+                .FirstOrDefaultAsync(rt => rt.Token == refreshToken);
+
+            if (token is null)
+                return;
+
+            token.IsRevoked = true;
+            await _context.SaveChangesAsync();
+        }
     }
 }

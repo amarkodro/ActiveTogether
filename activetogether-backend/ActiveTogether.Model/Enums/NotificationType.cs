@@ -7,5 +7,8 @@ public enum NotificationType
     ActivityReminder = 3,
     Recommendation = 4,
     OrganizerRequestApproved = 5,
-    OrganizerRequestRejected = 6
+    OrganizerRequestRejected = 6,
+    NewReservation = 7,
+    PaymentCompleted = 8,
+    ReservationCompleted = 9
 }

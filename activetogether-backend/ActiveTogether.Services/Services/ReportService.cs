@@ -5,16 +5,20 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.IO;
 
 namespace ActiveTogether.Services.Services
 {
     public class ReportService : IReportService
     {
         private readonly ActiveTogetherDbContext _context;
+        private readonly byte[] _logoBytes;
 
         public ReportService(ActiveTogetherDbContext context)
         {
             _context = context;
+            var logoPath = Path.Combine(AppContext.BaseDirectory, "Resources", "logo.png");
+            _logoBytes = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : Array.Empty<byte>();
         }
 
         public async Task<byte[]> GenerateActivityPopularityReportAsync(DateTime? dateFrom, DateTime? dateTo)
@@ -67,12 +71,18 @@ namespace ActiveTogether.Services.Services
                     page.Margin(30);
                     page.DefaultTextStyle(x => x.FontSize(9));
 
-                    page.Header().Column(col =>
+                    page.Header().Row(row =>
                     {
-                        col.Item().Text("ActiveTogether — Izvještaj: Popularnost aktivnosti").FontSize(16).Bold();
-                        col.Item().Text($"Period: {(dateFrom?.ToString("dd.MM.yyyy") ?? "-")} — {(dateTo?.ToString("dd.MM.yyyy") ?? "-")}").FontSize(10);
-                        col.Item().Text($"Generisano: {DateTime.Now:dd.MM.yyyy HH:mm}").FontSize(8);
-                        col.Item().PaddingBottom(10);
+                        if (_logoBytes.Length > 0)
+                            row.ConstantItem(70).Height(70).Image(_logoBytes).FitArea();
+
+                        row.RelativeItem().PaddingLeft(_logoBytes.Length > 0 ? 10 : 0).Column(col =>
+                        {
+                            col.Item().Text("ActiveTogether - Izvještaj: Popularnost aktivnosti").FontSize(16).Bold();
+                            col.Item().Text($"Period: {(dateFrom?.ToString("dd.MM.yyyy") ?? "-")} — {(dateTo?.ToString("dd.MM.yyyy") ?? "-")}").FontSize(10);
+                            col.Item().Text($"Generisano: {DateTime.Now:dd.MM.yyyy HH:mm}").FontSize(8);
+                            col.Item().PaddingBottom(10);
+                        });
                     });
 
                     page.Content().Table(table =>
