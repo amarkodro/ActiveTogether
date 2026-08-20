@@ -42,5 +42,20 @@ namespace ActiveTogether.WebAPI.Controllers
             await _authService.LogoutAsync(request.RefreshToken);
             return NoContent();
         }
+
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            await _authService.ForgotPasswordAsync(request);
+            return NoContent();
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            await _authService.ResetPasswordAsync(request);
+            return NoContent();
+        }
     }
 }

@@ -67,4 +67,22 @@ class AuthService {
     }
     await _storageService.clearTokens();
   }
+
+  Future<void> forgotPassword(String email) async {
+    await _apiClient.dio.post(
+      '/api/Auth/forgot-password',
+      data: {'email': email},
+    );
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _apiClient.dio.post(
+      '/api/Auth/reset-password',
+      data: {'email': email, 'code': code, 'newPassword': newPassword},
+    );
+  }
 }

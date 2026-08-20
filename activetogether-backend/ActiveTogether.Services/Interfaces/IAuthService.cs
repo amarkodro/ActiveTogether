@@ -9,5 +9,7 @@ namespace ActiveTogether.Services.Interfaces
         Task<LoginResponse> LoginAsync(LoginRequest request);
         Task<LoginResponse> RefreshTokenAsync(string refreshToken);
         Task LogoutAsync(string refreshToken);
+        Task ForgotPasswordAsync(ForgotPasswordRequest request);
+        Task ResetPasswordAsync(ResetPasswordRequest request);
     }
 }

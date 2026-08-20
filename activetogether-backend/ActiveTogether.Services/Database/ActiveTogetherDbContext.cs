@@ -25,6 +25,7 @@ namespace ActiveTogether.Services.Database
         public DbSet<OrganizerRequest> OrganizerRequests { get; set; }
         public DbSet<SearchHistory> SearchHistories { get; set; }
         public DbSet<ActivityView> ActivityViews { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
