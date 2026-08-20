@@ -52,13 +52,22 @@ namespace ActiveTogether.Services.Services
             var user = await _context.Users.FindAsync(userId);
             if (user is not null)
             {
-                await _publisher.PublishEmailNotificationAsync(new EmailNotificationMessage
+                try
                 {
-                    ToEmail = user.Email,
-                    ToName = $"{user.FirstName} {user.LastName}",
-                    Subject = title,
-                    Body = text
-                });
+                    await _publisher.PublishEmailNotificationAsync(new EmailNotificationMessage
+                    {
+                        ToEmail = user.Email,
+                        ToName = $"{user.FirstName} {user.LastName}",
+                        Subject = title,
+                        Body = text
+                    });
+                }
+                catch (Exception)
+                {
+                    // RabbitMQ eventualno nije dostupan (npr. Docker nije pokrenut) — email notifikacija
+                    // je sporedna funkcionalnost i ne smije oboriti glavnu akciju (npr. potvrdu rezervacije).
+                    // In-app notifikacija (baza + SignalR) je već poslana iznad, tako da korisnik nije oštećen.
+                }
             }
         }
 

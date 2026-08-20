@@ -1,0 +1,280 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/profile.dart';
+import '../providers/auth_provider.dart';
+import '../services/api_client.dart';
+import '../services/organizer_request_service.dart';
+import '../services/profile_service.dart';
+import '../theme/app_colors.dart';
+import 'change_password_screen.dart';
+import 'edit_profile_screen.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late Future<Profile> _profileFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = _load();
+  }
+
+  Future<Profile> _load() {
+    final apiClient = context.read<ApiClient>();
+    return ProfileService(apiClient).getMy();
+  }
+
+  void _refresh() {
+    setState(() {
+      _profileFuture = _load();
+    });
+  }
+
+  Future<void> _becomeOrganizer() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Postani organizator'),
+        content: const Text(
+          'Poslat ćeš zahtjev administratoru za dodjelu organizatorske uloge. Nastaviti?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Pošalji zahtjev'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final apiClient = context.read<ApiClient>();
+      await OrganizerRequestService(apiClient).create();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Zahtjev je poslan. Čeka odobrenje administratora.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Slanje zahtjeva nije uspjelo.')),
+      );
+    }
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Odjava'),
+        content: const Text('Da li sigurno želiš da se odjaviš?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Odjavi se', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await context.read<AuthProvider>().logout();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F8),
+      body: SafeArea(
+        child: FutureBuilder<Profile>(
+          future: _profileFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Greška: ${snapshot.error}'));
+            }
+
+            final profile = snapshot.data!;
+
+            return ListView(
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: const Color(0xFF1E3A8A),
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 36,
+                        backgroundColor: Colors.white,
+                        child: Text(
+                          profile.initials,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E3A8A),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        profile.fullName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        profile.email,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.roleColor(profile.role),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          profile.role,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      _statCard('${profile.totalReservations}', 'Rezervacija'),
+                      const SizedBox(width: 10),
+                      _statCard(
+                        '${profile.completedActivitiesCount}',
+                        'Završeno',
+                      ),
+                      const SizedBox(width: 10),
+                      _statCard(
+                        profile.averageRatingGiven?.toStringAsFixed(1) ?? '-',
+                        'Prosj. ocjena',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                _menuItem(Icons.person_outline, 'Lični podaci', () async {
+                  final changed = await Navigator.of(context).push<bool>(
+                    MaterialPageRoute(
+                      builder: (_) => EditProfileScreen(profile: profile),
+                    ),
+                  );
+                  if (changed == true) _refresh();
+                }),
+                _menuItem(Icons.notifications_none, 'Notifikacije', () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Notifikacije dolaze u sljedećem koraku.'),
+                    ),
+                  );
+                }),
+                _menuItem(Icons.lock_outline, 'Promijeni lozinku', () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ChangePasswordScreen(),
+                    ),
+                  );
+                }),
+                if (profile.role == 'Korisnik')
+                  _menuItem(
+                    Icons.upgrade_outlined,
+                    'Postani organizator',
+                    _becomeOrganizer,
+                  ),
+                _menuItem(
+                  Icons.logout,
+                  'Odjavi se',
+                  _logout,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 24),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _statCard(String value, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _menuItem(
+    IconData icon,
+    String label,
+    VoidCallback onTap, {
+    Color? color,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: color ?? Colors.black87),
+      title: Text(label, style: TextStyle(color: color ?? Colors.black87)),
+      trailing: color == null
+          ? const Icon(Icons.chevron_right, color: Colors.grey)
+          : null,
+      onTap: onTap,
+    );
+  }
+}

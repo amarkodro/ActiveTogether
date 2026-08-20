@@ -73,4 +73,15 @@ class AppColors {
         return status;
     }
   }
+
+  static Color roleColor(String role) {
+    switch (role) {
+      case 'Admin':
+        return const Color(0xFF1E293B);
+      case 'Organizator':
+        return const Color(0xFFCA8A04);
+      default:
+        return primary;
+    }
+  }
 }

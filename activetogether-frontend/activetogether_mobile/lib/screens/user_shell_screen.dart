@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'my_reservations_screen.dart';
+import 'profile_screen.dart';
 
 class UserShellScreen extends StatefulWidget {
   const UserShellScreen({super.key});
@@ -17,7 +18,7 @@ class _UserShellScreenState extends State<UserShellScreen> {
     const HomeScreen(),
     const SearchScreen(),
     const MyReservationsScreen(),
-    const Center(child: Text('Profil — uskoro')),
+    const ProfileScreen(),
   ];
 
   @override
