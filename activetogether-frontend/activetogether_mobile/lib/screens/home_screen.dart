@@ -6,6 +6,8 @@ import '../services/api_client.dart';
 import '../services/recommendation_service.dart';
 import '../widgets/activity_card.dart';
 import 'activity_detail_screen.dart';
+import '../providers/notification_provider.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _recommendationsFuture = _loadRecommendations();
+    context.read<NotificationProvider>().init();
   }
 
   Future<List<RecommendedActivity>> _loadRecommendations() async {
@@ -79,11 +82,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none),
-                    onPressed: () {
-                      // TODO: notifikacije ekran
-                    },
+                  Consumer<NotificationProvider>(
+                    builder: (context, notif, _) => IconButton(
+                      icon: Badge(
+                        label: Text('${notif.unreadCount}'),
+                        isLabelVisible: notif.unreadCount > 0,
+                        child: const Icon(Icons.notifications_none),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationsScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),

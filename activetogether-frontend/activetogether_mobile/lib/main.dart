@@ -7,6 +7,7 @@ import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/user_shell_screen.dart';
 import 'screens/organizer/organizer_shell_screen.dart';
+import 'providers/notification_provider.dart';
 
 void main() {
   runApp(const AppRoot());
@@ -34,6 +35,18 @@ class AppRoot extends StatelessWidget {
           )..tryAutoLogin(),
           update: (_, authService, storageService, previous) =>
               previous ?? AuthProvider(authService, storageService),
+        ),
+        ChangeNotifierProxyProvider2<
+          ApiClient,
+          StorageService,
+          NotificationProvider
+        >(
+          create: (context) => NotificationProvider(
+            context.read<ApiClient>(),
+            context.read<StorageService>(),
+          ),
+          update: (_, apiClient, storageService, previous) =>
+              previous ?? NotificationProvider(apiClient, storageService),
         ),
       ],
       child: MaterialApp(

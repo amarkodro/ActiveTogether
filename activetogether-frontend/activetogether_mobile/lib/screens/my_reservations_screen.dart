@@ -6,6 +6,8 @@ import '../services/api_client.dart';
 import '../services/reservation_service.dart';
 import '../theme/app_colors.dart';
 import 'activity_detail_screen.dart';
+import 'package:dio/dio.dart';
+import '../services/rating_service.dart';
 
 class MyReservationsScreen extends StatefulWidget {
   const MyReservationsScreen({super.key});
@@ -96,6 +98,91 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Otkazivanje nije uspjelo.')),
       );
+    }
+  }
+
+  Future<void> _rateActivity(Reservation reservation) async {
+    int selectedScore = 5;
+    final commentController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Ocijeni "${reservation.activityName}"'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  final starIndex = index + 1;
+                  return IconButton(
+                    icon: Icon(
+                      starIndex <= selectedScore
+                          ? Icons.star
+                          : Icons.star_border,
+                      color: Colors.amber,
+                      size: 32,
+                    ),
+                    onPressed: () =>
+                        setDialogState(() => selectedScore = starIndex),
+                  );
+                }),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: commentController,
+                decoration: const InputDecoration(
+                  labelText: 'Komentar (opciono)',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Odustani'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Pošalji ocjenu'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != true) return;
+
+    try {
+      final apiClient = context.read<ApiClient>();
+      await RatingService(apiClient).create(
+        reservationId: reservation.id,
+        score: selectedScore,
+        comment: commentController.text.trim().isEmpty
+            ? null
+            : commentController.text.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Hvala na ocjeni!')));
+    } catch (e) {
+      String message = 'Slanje ocjene nije uspjelo.';
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -269,6 +356,18 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
                               foregroundColor: Colors.red,
                             ),
                             child: const Text('Otkaži'),
+                          ),
+                        ),
+                      ],
+                      if (reservation.status == 'Completed') ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _rateActivity(reservation),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.amber.shade800,
+                            ),
+                            child: const Text('Ocijeni'),
                           ),
                         ),
                       ],

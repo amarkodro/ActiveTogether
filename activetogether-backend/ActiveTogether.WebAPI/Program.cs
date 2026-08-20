@@ -107,6 +107,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrganizerRequestService, OrganizerRequestService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IRatingService, RatingService>();
 
 builder.Services.AddCors(options =>
 {
