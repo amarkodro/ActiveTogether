@@ -8,8 +8,11 @@ import 'screens/login_screen.dart';
 import 'screens/user_shell_screen.dart';
 import 'screens/organizer/organizer_shell_screen.dart';
 import 'providers/notification_provider.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 void main() {
+  Stripe.publishableKey =
+      'pk_test_51U2ogg3Fa0fbQZC0iaQYiTZ33sD5HaRtDLSEwgy6iWtf43Ht7WTHoXiq3SYrsCbN8nVMyhsQvsv35F8GT7YeLEZ500QCpEc2DD';
   runApp(const AppRoot());
 }
 

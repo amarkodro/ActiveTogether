@@ -2,6 +2,7 @@ class ReservationPayment {
   final int id;
   final double amount;
   final String status;
+  final String? clientSecret;
   final DateTime? paidAt;
   final DateTime? refundedAt;
 
@@ -9,6 +10,7 @@ class ReservationPayment {
     required this.id,
     required this.amount,
     required this.status,
+    this.clientSecret,
     this.paidAt,
     this.refundedAt,
   });
@@ -18,6 +20,7 @@ class ReservationPayment {
       id: json['id'] as int,
       amount: (json['amount'] as num).toDouble(),
       status: json['status'] as String,
+      clientSecret: json['clientSecret'] as String?,
       paidAt: json['paidAt'] != null
           ? DateTime.parse(json['paidAt'] as String)
           : null,

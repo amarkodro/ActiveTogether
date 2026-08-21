@@ -97,10 +97,13 @@ class _ActivityFormDialogState extends State<ActivityFormDialog> {
   }
 
   Future<void> _pickDate() async {
+    final firstDate = DateTime.now();
+    final initialDate = _date.isBefore(firstDate) ? firstDate : _date;
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: _date,
-      firstDate: DateTime.now(),
+      initialDate: initialDate,
+      firstDate: firstDate,
       lastDate: DateTime.now().add(const Duration(days: 730)),
     );
     if (picked != null) setState(() => _date = picked);

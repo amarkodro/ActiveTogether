@@ -7,6 +7,8 @@ import '../services/activity_service.dart';
 import '../services/api_client.dart';
 import '../services/reservation_service.dart';
 import '../theme/app_colors.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import '../services/payment_service.dart';
 
 class ActivityDetailScreen extends StatefulWidget {
   final int activityId;
@@ -20,6 +22,7 @@ class ActivityDetailScreen extends StatefulWidget {
 class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   late Future<Activity> _activityFuture;
   bool _isReserving = false;
+  String? _myReservationStatus;
 
   @override
   void initState() {
@@ -27,37 +30,100 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     _activityFuture = _load();
   }
 
-  Future<Activity> _load() {
+  Future<Activity> _load() async {
     final apiClient = context.read<ApiClient>();
-    return ActivityService(apiClient).getById(widget.activityId);
+    final activity = await ActivityService(
+      apiClient,
+    ).getById(widget.activityId);
+    try {
+      final myReservations = await ReservationService(apiClient).getMy();
+      final existing = myReservations.where(
+        (r) => r.activityId == widget.activityId && r.status != 'Cancelled',
+      );
+      _myReservationStatus = existing.isNotEmpty ? existing.first.status : null;
+    } catch (_) {
+      _myReservationStatus = null;
+    }
+    return activity;
   }
 
   Future<void> _reserve(Activity activity) async {
-    if (!activity.isFree) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Plaćanje premium aktivnosti dolazi u sljedećem koraku.',
-          ),
-        ),
-      );
-      return;
-    }
-
     setState(() => _isReserving = true);
+    final apiClient = context.read<ApiClient>();
+    int? createdReservationId;
     try {
-      final apiClient = context.read<ApiClient>();
-      await ReservationService(apiClient).create(activity.id);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Rezervacija je poslana. Čeka potvrdu organizatora.'),
-        ),
-      );
+      final result = await ReservationService(apiClient).create(activity.id);
+      createdReservationId = result['id'] as int;
+
+      if (!activity.isFree) {
+        final payment = result['payment'] as Map<String, dynamic>?;
+        final clientSecret = payment?['clientSecret'] as String?;
+
+        if (clientSecret == null) {
+          throw Exception('Nije moguće pokrenuti plaćanje.');
+        }
+
+        await Stripe.instance.initPaymentSheet(
+          paymentSheetParameters: SetupPaymentSheetParameters(
+            paymentIntentClientSecret: clientSecret,
+            merchantDisplayName: 'ActiveTogether',
+          ),
+        );
+
+        await Stripe.instance.presentPaymentSheet();
+
+        await PaymentService(apiClient).confirm(createdReservationId);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Plaćanje uspješno! Rezervacija je kreirana.'),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Rezervacija je poslana. Čeka potvrdu organizatora.'),
+          ),
+        );
+      }
+
       setState(() {
         _activityFuture = _load();
       });
+    } on StripeException catch (e) {
+      if (createdReservationId != null) {
+        try {
+          await ReservationService(
+            apiClient,
+          ).cancel(createdReservationId, reason: 'Plaćanje otkazano');
+        } catch (_) {}
+      }
+      if (!mounted) return;
+      if (e.error.code == FailureCode.Canceled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Plaćanje otkazano. Rezervacija nije napravljena.'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Plaćanje nije uspjelo: ${e.error.localizedMessage ?? e.error.message}',
+            ),
+          ),
+        );
+      }
     } catch (e) {
+      if (createdReservationId != null) {
+        try {
+          await ReservationService(
+            apiClient,
+          ).cancel(createdReservationId, reason: 'Greška pri plaćanju');
+        } catch (_) {}
+      }
       String message = 'Rezervacija nije uspjela.';
       if (e is DioException) {
         final data = e.response?.data;
@@ -222,6 +288,18 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           if (!snapshot.hasData) return const SizedBox.shrink();
           final activity = snapshot.data!;
           final full = activity.spotsLeft <= 0;
+          final alreadyReserved = _myReservationStatus != null;
+
+          String label;
+          if (alreadyReserved) {
+            label = _myReservationStatus == 'Confirmed'
+                ? 'REZERVACIJA POTVRĐENA'
+                : 'REZERVACIJA NA ČEKANJU';
+          } else if (full) {
+            label = 'POPUNJENO';
+          } else {
+            label = activity.isFree ? 'REZERVIŠI' : 'PLATI I REZERVIŠI';
+          }
 
           return SafeArea(
             child: Padding(
@@ -229,7 +307,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
               child: SizedBox(
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: (_isReserving || full)
+                  onPressed: (_isReserving || full || alreadyReserved)
                       ? null
                       : () => _reserve(activity),
                   style: ElevatedButton.styleFrom(
@@ -245,13 +323,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : Text(
-                          full
-                              ? 'POPUNJENO'
-                              : (activity.isFree
-                                    ? 'REZERVIŠI'
-                                    : 'PLATI I REZERVIŠI'),
-                        ),
+                      : Text(label),
                 ),
               ),
             ),

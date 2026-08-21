@@ -89,10 +89,14 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
 
   Future<void> _pickDateTime() async {
     final now = DateTime.now();
+    final firstDate = now;
+    final suggested = _dateTime ?? now.add(const Duration(days: 1));
+    final initialDate = suggested.isBefore(firstDate) ? firstDate : suggested;
+
     final date = await showDatePicker(
       context: context,
-      initialDate: _dateTime ?? now.add(const Duration(days: 1)),
-      firstDate: now,
+      initialDate: initialDate,
+      firstDate: firstDate,
       lastDate: now.add(const Duration(days: 365)),
     );
     if (date == null || !mounted) return;
