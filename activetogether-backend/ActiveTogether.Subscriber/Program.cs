@@ -1,6 +1,10 @@
 using ActiveTogether.Subscriber;
 
-DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
+if (File.Exists(envPath))
+{
+    DotNetEnv.Env.Load(envPath);
+}
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();

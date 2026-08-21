@@ -12,7 +12,11 @@ using System.Text;
 using ActiveTogether.Services.Messaging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
-DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), "..", ".env");
+if (File.Exists(envPath))
+{
+    DotNetEnv.Env.Load(envPath);
+}
 
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
@@ -126,6 +130,7 @@ app.UseMiddleware<ActiveTogether.WebAPI.Middleware.ExceptionHandlingMiddleware>(
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ActiveTogetherDbContext>();
+    await db.Database.MigrateAsync();
     await DatabaseSeeder.SeedAsync(db);
 }
 

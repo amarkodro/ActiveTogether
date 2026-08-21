@@ -26,8 +26,28 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration) : Back
             Password = configuration["RabbitMq:Password"] ?? "guest"
         };
 
-        _connection = await factory.CreateConnectionAsync(stoppingToken);
-        _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
+        var delay = TimeSpan.FromSeconds(1);
+        const int maxDelaySeconds = 30;
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                _connection = await factory.CreateConnectionAsync(stoppingToken);
+                _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
+                break;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Ne mogu se povezati na RabbitMQ ({HostName}:{Port}), pokušavam ponovo za {Delay}s.",
+                    factory.HostName, factory.Port, delay.TotalSeconds);
+                await Task.Delay(delay, stoppingToken);
+                delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, maxDelaySeconds));
+            }
+        }
+
+        if (stoppingToken.IsCancellationRequested || _channel is null)
+            return;
 
         await _channel.QueueDeclareAsync(queue: QueueName, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
         await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false, cancellationToken: stoppingToken);
