@@ -1,0 +1,15 @@
+import '../models/organizer_dashboard_stats.dart';
+import 'api_client.dart';
+
+class DashboardService {
+  final ApiClient _apiClient;
+
+  DashboardService(this._apiClient);
+
+  Future<OrganizerDashboardStats> getOrganizerDashboard() async {
+    final response = await _apiClient.dio.get('/api/Dashboard/organizer');
+    return OrganizerDashboardStats.fromJson(
+      response.data as Map<String, dynamic>,
+    );
+  }
+}

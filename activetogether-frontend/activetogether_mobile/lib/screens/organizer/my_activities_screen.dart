@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../models/activity.dart';
+import '../../providers/notification_provider.dart';
 import '../../services/activity_service.dart';
 import '../../services/api_client.dart';
 import '../../theme/app_colors.dart';
+import '../notifications_screen.dart';
 import 'activity_form_screen.dart';
 
 class MyActivitiesScreen extends StatefulWidget {
@@ -24,6 +26,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _activitiesFuture = _load();
+    context.read<NotificationProvider>().init();
   }
 
   Future<List<Activity>> _load() {
@@ -64,6 +67,22 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
           ],
         ),
         actions: [
+          Consumer<NotificationProvider>(
+            builder: (context, notif, _) => IconButton(
+              icon: Badge(
+                label: Text('${notif.unreadCount}'),
+                isLabelVisible: notif.unreadCount > 0,
+                child: const Icon(Icons.notifications_none),
+              ),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () async {

@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../config/api_config.dart';
+import '../models/organizer_dashboard_stats.dart';
 import '../models/profile.dart';
 import '../providers/auth_provider.dart';
+import '../providers/notification_provider.dart';
 import '../services/api_client.dart';
+import '../services/dashboard_service.dart';
 import '../services/file_upload_service.dart';
 import '../services/organizer_request_service.dart';
 import '../services/profile_service.dart';
 import '../theme/app_colors.dart';
 import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
+import 'notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,17 +25,23 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late Future<Profile> _profileFuture;
+  Future<OrganizerDashboardStats>? _organizerStatsFuture;
   bool _uploadingAvatar = false;
 
   @override
   void initState() {
     super.initState();
     _profileFuture = _load();
+    context.read<NotificationProvider>().init();
   }
 
-  Future<Profile> _load() {
+  Future<Profile> _load() async {
     final apiClient = context.read<ApiClient>();
-    return ProfileService(apiClient).getMy();
+    final profile = await ProfileService(apiClient).getMy();
+    if (profile.role == 'Organizator') {
+      _organizerStatsFuture = DashboardService(apiClient).getOrganizerDashboard();
+    }
+    return profile;
   }
 
   void _refresh() {
@@ -260,21 +270,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      _statCard('${profile.totalReservations}', 'Rezervacija'),
-                      const SizedBox(width: 10),
-                      _statCard(
-                        '${profile.completedActivitiesCount}',
-                        'Završeno',
-                      ),
-                      const SizedBox(width: 10),
-                      _statCard(
-                        profile.averageRatingGiven?.toStringAsFixed(1) ?? '-',
-                        'Prosj. ocjena',
-                      ),
-                    ],
-                  ),
+                  child: profile.role == 'Organizator'
+                      ? FutureBuilder<OrganizerDashboardStats>(
+                          future: _organizerStatsFuture,
+                          builder: (context, statsSnapshot) {
+                            final stats = statsSnapshot.data;
+                            return Row(
+                              children: [
+                                _statCard(
+                                  '${stats?.activeActivitiesCount ?? '-'}',
+                                  'Aktivnosti',
+                                ),
+                                const SizedBox(width: 10),
+                                _statCard(
+                                  '${stats?.totalParticipants ?? '-'}',
+                                  'Učesnika',
+                                ),
+                                const SizedBox(width: 10),
+                                _statCard(
+                                  stats != null
+                                      ? stats.averageRating.toStringAsFixed(1)
+                                      : '-',
+                                  'Prosj. ocjena',
+                                ),
+                              ],
+                            );
+                          },
+                        )
+                      : Row(
+                          children: [
+                            _statCard(
+                              '${profile.totalReservations}',
+                              'Rezervacija',
+                            ),
+                            const SizedBox(width: 10),
+                            _statCard(
+                              '${profile.completedActivitiesCount}',
+                              'Završeno',
+                            ),
+                            const SizedBox(width: 10),
+                            _statCard(
+                              profile.averageRatingGiven?.toStringAsFixed(1) ??
+                                  '-',
+                              'Prosj. ocjena',
+                            ),
+                          ],
+                        ),
                 ),
                 const SizedBox(height: 6),
                 _menuItem(Icons.person_outline, 'Lični podaci', () async {
@@ -285,13 +326,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                   if (changed == true) _refresh();
                 }),
-                _menuItem(Icons.notifications_none, 'Notifikacije', () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Notifikacije dolaze u sljedećem koraku.'),
+                Consumer<NotificationProvider>(
+                  builder: (context, notif, _) => ListTile(
+                    leading: const Icon(
+                      Icons.notifications_none,
+                      color: Colors.black87,
                     ),
-                  );
-                }),
+                    title: const Text(
+                      'Notifikacije',
+                      style: TextStyle(color: Colors.black87),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (notif.unreadCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${notif.unreadCount}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        const Icon(Icons.chevron_right, color: Colors.grey),
+                      ],
+                    ),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const NotificationsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 _menuItem(Icons.lock_outline, 'Promijeni lozinku', () {
                   Navigator.of(context).push(
                     MaterialPageRoute(

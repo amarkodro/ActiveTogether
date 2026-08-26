@@ -59,8 +59,8 @@ class OrganizerSidebar extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(20, 24, 20, 24),
               child: Image(
                 image: AssetImage('assets/images/logo.png'),
-                width: 40,
-                height: 40,
+                width: 150,
+                height: 150,
               ),
             ),
             Expanded(
