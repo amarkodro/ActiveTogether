@@ -80,7 +80,7 @@ namespace ActiveTogether.Services.Services
                         {
                             col.Item().Text("ActiveTogether - Izvještaj: Popularnost aktivnosti").FontSize(16).Bold();
                             col.Item().Text($"Period: {(dateFrom?.ToString("dd.MM.yyyy") ?? "-")} — {(dateTo?.ToString("dd.MM.yyyy") ?? "-")}").FontSize(10);
-                            col.Item().Text($"Generisano: {DateTime.Now:dd.MM.yyyy HH:mm}").FontSize(8);
+                            col.Item().Text($"Generisano: {DateTime.UtcNow:dd.MM.yyyy HH:mm}").FontSize(8);
                             col.Item().PaddingBottom(10);
                         });
                     });
@@ -176,7 +176,7 @@ namespace ActiveTogether.Services.Services
                     {
                         col.Item().Text("ActiveTogether — Izvještaj: Aktivnost korisnika").FontSize(16).Bold();
                         col.Item().Text($"Period: {(dateFrom?.ToString("dd.MM.yyyy") ?? "-")} — {(dateTo?.ToString("dd.MM.yyyy") ?? "-")}").FontSize(10);
-                        col.Item().Text($"Generisano: {DateTime.Now:dd.MM.yyyy HH:mm}").FontSize(8);
+                        col.Item().Text($"Generisano: {DateTime.UtcNow:dd.MM.yyyy HH:mm}").FontSize(8);
                         col.Item().PaddingBottom(10);
                     });
 

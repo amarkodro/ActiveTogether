@@ -152,6 +152,7 @@ namespace ActiveTogether.Services.Services
                 UserId = request.UserId,
                 UserFullName = request.User != null ? $"{request.User.FirstName} {request.User.LastName}" : string.Empty,
                 UserEmail = request.User?.Email ?? string.Empty,
+                UserProfileImageUrl = request.User?.ProfileImageUrl,
                 Status = request.Status.ToString(),
                 RejectionReason = request.RejectionReason,
                 CreatedAt = request.CreatedAt,

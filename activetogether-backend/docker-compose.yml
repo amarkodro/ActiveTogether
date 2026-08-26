@@ -44,6 +44,8 @@ services:
       - RabbitMq__HostName=rabbitmq
     ports:
       - "5027:8080"
+    volumes:
+      - uploads-data:/app/wwwroot/uploads
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -73,3 +75,4 @@ networks:
 
 volumes:
   sqlserver-data:
+  uploads-data:

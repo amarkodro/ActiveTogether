@@ -12,6 +12,8 @@
         public int LocationId { get; set; }
         public string LocationName { get; set; } = string.Empty;
         public string LocationAddress { get; set; } = string.Empty;
+        public double LocationLatitude { get; set; }
+        public double LocationLongitude { get; set; }
         public int OrganizerId { get; set; }
         public string OrganizerName { get; set; } = string.Empty;
         public DateTime DateTime { get; set; }

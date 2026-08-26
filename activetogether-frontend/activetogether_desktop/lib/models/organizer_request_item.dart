@@ -3,6 +3,7 @@ class OrganizerRequestItem {
   final int userId;
   final String userFullName;
   final String userEmail;
+  final String? userProfileImageUrl;
   final String status;
   final String? rejectionReason;
   final DateTime createdAt;
@@ -13,6 +14,7 @@ class OrganizerRequestItem {
     required this.userId,
     required this.userFullName,
     required this.userEmail,
+    this.userProfileImageUrl,
     required this.status,
     this.rejectionReason,
     required this.createdAt,
@@ -32,6 +34,7 @@ class OrganizerRequestItem {
       userId: json['userId'] as int,
       userFullName: json['userFullName'] as String,
       userEmail: json['userEmail'] as String,
+      userProfileImageUrl: json['userProfileImageUrl'] as String?,
       status: json['status'] as String,
       rejectionReason: json['rejectionReason'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),

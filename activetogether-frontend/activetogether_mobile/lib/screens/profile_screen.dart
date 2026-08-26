@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../config/api_config.dart';
 import '../models/profile.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
+import '../services/file_upload_service.dart';
 import '../services/organizer_request_service.dart';
 import '../services/profile_service.dart';
 import '../theme/app_colors.dart';
@@ -18,6 +21,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late Future<Profile> _profileFuture;
+  bool _uploadingAvatar = false;
 
   @override
   void initState() {
@@ -34,6 +38,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _profileFuture = _load();
     });
+  }
+
+  Future<void> _pickAvatar(Profile profile) async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1000,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploadingAvatar = true);
+    try {
+      final apiClient = context.read<ApiClient>();
+      final url = await FileUploadService(apiClient).uploadImage(
+        filePath: picked.path,
+        type: 'profile',
+      );
+      await ProfileService(apiClient).update(
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        phoneNumber: profile.phoneNumber,
+        cityId: profile.cityId,
+        profileImageUrl: url,
+      );
+      if (!mounted) return;
+      _refresh();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Otpremanje slike nije uspjelo.')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingAvatar = false);
+    }
   }
 
   Future<void> _becomeOrganizer() async {
@@ -125,16 +163,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 36,
-                        backgroundColor: Colors.white,
-                        child: Text(
-                          profile.initials,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E3A8A),
-                          ),
+                      GestureDetector(
+                        onTap: _uploadingAvatar
+                            ? null
+                            : () => _pickAvatar(profile),
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 36,
+                              backgroundColor: Colors.white,
+                              backgroundImage:
+                                  ApiConfig.resolveImageUrl(
+                                        profile.profileImageUrl,
+                                      ) !=
+                                      null
+                                  ? NetworkImage(
+                                      ApiConfig.resolveImageUrl(
+                                        profile.profileImageUrl,
+                                      )!,
+                                    )
+                                  : null,
+                              child:
+                                  _uploadingAvatar ||
+                                      ApiConfig.resolveImageUrl(
+                                            profile.profileImageUrl,
+                                          ) !=
+                                          null
+                                  ? (_uploadingAvatar
+                                        ? const CircularProgressIndicator()
+                                        : null)
+                                  : Text(
+                                      profile.initials,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1E3A8A),
+                                      ),
+                                    ),
+                            ),
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1E3A8A),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),

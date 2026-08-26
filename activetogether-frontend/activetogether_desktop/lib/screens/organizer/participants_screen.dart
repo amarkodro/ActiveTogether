@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../config/api_config.dart';
 import '../../models/activity_list_item.dart';
 import '../../models/reservation_item.dart';
 import '../../services/activity_service.dart';
@@ -433,14 +434,22 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
           CircleAvatar(
             radius: 18,
             backgroundColor: AppColors.roleUser,
-            child: Text(
-              r.userName.isNotEmpty ? r.userName[0].toUpperCase() : '?',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            backgroundImage:
+                ApiConfig.resolveImageUrl(r.userProfileImageUrl) != null
+                ? NetworkImage(
+                    ApiConfig.resolveImageUrl(r.userProfileImageUrl)!,
+                  )
+                : null,
+            child: ApiConfig.resolveImageUrl(r.userProfileImageUrl) != null
+                ? null
+                : Text(
+                    r.userName.isNotEmpty ? r.userName[0].toUpperCase() : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(

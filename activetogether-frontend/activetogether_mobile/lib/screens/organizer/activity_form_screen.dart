@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../config/api_config.dart';
 import '../../models/activity.dart';
 import '../../models/activity_type_option.dart';
 import '../../models/category_option.dart';
@@ -9,7 +11,9 @@ import '../../services/activity_service.dart';
 import '../../services/activity_type_service.dart';
 import '../../services/api_client.dart';
 import '../../services/category_service.dart';
+import '../../services/file_upload_service.dart';
 import '../../services/location_service.dart';
+import 'location_picker_screen.dart';
 
 class ActivityFormScreen extends StatefulWidget {
   final Activity? activity;
@@ -32,6 +36,8 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
   int? _locationId;
   DateTime? _dateTime;
   bool _isFree = true;
+  String? _imageUrl;
+  bool _uploadingImage = false;
 
   List<CategoryOption> _categories = [];
   List<ActivityTypeOption> _activityTypes = [];
@@ -58,6 +64,7 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
     _locationId = a?.locationId;
     _dateTime = a?.dateTime;
     _isFree = a?.isFree ?? true;
+    _imageUrl = a?.imageUrl;
     _loadReferenceData();
   }
 
@@ -76,6 +83,46 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
     } catch (_) {
       setState(() => _loadingReferenceData = false);
     }
+  }
+
+  static const _newLocationSentinel = -1;
+
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      imageQuality: 85,
+    );
+    if (picked == null || !mounted) return;
+
+    setState(() => _uploadingImage = true);
+    try {
+      final apiClient = context.read<ApiClient>();
+      final url = await FileUploadService(apiClient).uploadImage(
+        filePath: picked.path,
+        type: 'activity',
+      );
+      if (!mounted) return;
+      setState(() => _imageUrl = url);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Otpremanje slike nije uspjelo.')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
+    }
+  }
+
+  Future<void> _openLocationPicker() async {
+    final result = await Navigator.of(context).push<LocationOption>(
+      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _locations = [..._locations, result];
+      _locationId = result.id;
+    });
   }
 
   @override
@@ -158,6 +205,7 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
           capacity: int.parse(_capacityController.text),
           isFree: _isFree,
           price: price,
+          imageUrl: _imageUrl,
         );
       } else {
         await service.create(
@@ -170,6 +218,7 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
           capacity: int.parse(_capacityController.text),
           isFree: _isFree,
           price: price,
+          imageUrl: _imageUrl,
         );
       }
 
@@ -308,8 +357,21 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
                         items: [
                           for (final l in _locations)
                             DropdownMenuItem(value: l.id, child: Text(l.label)),
+                          const DropdownMenuItem(
+                            value: _newLocationSentinel,
+                            child: Text(
+                              '+ Nova lokacija (označi na mapi)',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
                         ],
-                        onChanged: (v) => setState(() => _locationId = v),
+                        onChanged: (v) {
+                          if (v == _newLocationSentinel) {
+                            _openLocationPicker();
+                            return;
+                          }
+                          setState(() => _locationId = v);
+                        },
                         validator: (v) => v == null ? 'Obavezno polje.' : null,
                       ),
                       const SizedBox(height: 14),
@@ -444,6 +506,54 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
                           },
                         ),
                       ],
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Slika aktivnosti (opciono)',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: _uploadingImage ? null : _pickImage,
+                        child: Container(
+                          height: 160,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: _uploadingImage
+                              ? const Center(
+                                  child: CircularProgressIndicator(),
+                                )
+                              : _imageUrl == null
+                              ? const Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.add_photo_alternate_outlined,
+                                        size: 32,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 6),
+                                      Text(
+                                        'Dodaj sliku',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    ApiConfig.resolveImageUrl(_imageUrl)!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: 160,
+                                  ),
+                                ),
+                        ),
+                      ),
                       const SizedBox(height: 30),
                     ],
                   ),

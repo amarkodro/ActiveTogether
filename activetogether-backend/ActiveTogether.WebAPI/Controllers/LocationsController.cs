@@ -30,7 +30,7 @@ namespace ActiveTogether.WebAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = Roles.Admin)]
+        [Authorize(Roles = $"{Roles.Admin},{Roles.Organizer}")]
         public async Task<IActionResult> Create([FromBody] LocationUpsertRequest request)
         {
             var result = await _service.CreateAsync(request);

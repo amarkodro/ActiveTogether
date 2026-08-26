@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../config/api_config.dart';
 import '../../models/organizer_request_item.dart';
 import '../../models/paged_result.dart';
 import '../../services/api_client.dart';
@@ -331,14 +332,23 @@ class _OrganizerRequestsScreenState extends State<OrganizerRequestsScreen> {
           CircleAvatar(
             radius: 18,
             backgroundColor: AppColors.roleUser,
-            child: Text(
-              request.initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            backgroundImage:
+                ApiConfig.resolveImageUrl(request.userProfileImageUrl) != null
+                ? NetworkImage(
+                    ApiConfig.resolveImageUrl(request.userProfileImageUrl)!,
+                  )
+                : null,
+            child:
+                ApiConfig.resolveImageUrl(request.userProfileImageUrl) != null
+                ? null
+                : Text(
+                    request.initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(

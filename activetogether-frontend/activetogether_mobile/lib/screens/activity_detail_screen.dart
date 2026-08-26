@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../config/api_config.dart';
 import '../models/activity.dart';
 import '../services/activity_service.dart';
 import '../services/api_client.dart';
@@ -45,6 +47,20 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       _myReservationStatus = null;
     }
     return activity;
+  }
+
+  Future<void> _openInMaps(Activity activity) async {
+    final lat = activity.locationLatitude;
+    final lng = activity.locationLongitude;
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+    );
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nije moguće otvoriti mape.')),
+      );
+    }
   }
 
   Future<void> _reserve(Activity activity) async {
@@ -159,6 +175,10 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
           ).format(activity.dateTime);
           final categoryColor = AppColors.categoryColor(activity.categoryName);
 
+          final resolvedImageUrl = ApiConfig.resolveImageUrl(
+            activity.imageUrl,
+          );
+
           return SafeArea(
             child: Column(
               children: [
@@ -177,12 +197,29 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                           ),
                         ],
                       ),
-                      Center(
-                        child: Text(
-                          AppColors.categoryEmoji(activity.categoryName),
-                          style: const TextStyle(fontSize: 56),
+                      if (resolvedImageUrl != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            resolvedImageUrl,
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Center(
+                              child: Text(
+                                AppColors.categoryEmoji(activity.categoryName),
+                                style: const TextStyle(fontSize: 56),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Center(
+                          child: Text(
+                            AppColors.categoryEmoji(activity.categoryName),
+                            style: const TextStyle(fontSize: 56),
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 12),
                       Text(
                         activity.name,
@@ -208,9 +245,37 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _infoRow(Icons.calendar_today, dateLabel),
-                        _infoRow(
-                          Icons.location_on_outlined,
-                          '${activity.locationName}, ${activity.locationAddress}',
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 18,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${activity.locationName}, ${activity.locationAddress}',
+                                  style: const TextStyle(color: Colors.black87),
+                                ),
+                              ),
+                              if (activity.locationLatitude != 0 ||
+                                  activity.locationLongitude != 0)
+                                TextButton.icon(
+                                  onPressed: () => _openInMaps(activity),
+                                  icon: const Icon(Icons.directions, size: 18),
+                                  label: const Text('Navigiraj'),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                         _infoRow(
                           Icons.people_outline,

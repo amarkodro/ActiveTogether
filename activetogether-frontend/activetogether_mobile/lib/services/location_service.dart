@@ -12,4 +12,24 @@ class LocationService {
         .map((e) => LocationOption.fromJson(e as Map<String, dynamic>))
         .toList();
   }
+
+  Future<LocationOption> create({
+    required String name,
+    required String address,
+    required int cityId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final response = await _apiClient.dio.post(
+      '/api/Locations',
+      data: {
+        'name': name,
+        'address': address,
+        'cityId': cityId,
+        'latitude': latitude,
+        'longitude': longitude,
+      },
+    );
+    return LocationOption.fromJson(response.data as Map<String, dynamic>);
+  }
 }

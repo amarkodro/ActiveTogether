@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../config/api_config.dart';
 import '../../models/paged_result.dart';
 import '../../models/user_list_item.dart';
 import '../../services/api_client.dart';
@@ -311,14 +312,20 @@ class _UsersScreenState extends State<UsersScreen> {
           CircleAvatar(
             radius: 18,
             backgroundColor: roleColor,
-            child: Text(
-              user.initials,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            backgroundImage:
+                ApiConfig.resolveImageUrl(user.profileImageUrl) != null
+                ? NetworkImage(ApiConfig.resolveImageUrl(user.profileImageUrl)!)
+                : null,
+            child: ApiConfig.resolveImageUrl(user.profileImageUrl) != null
+                ? null
+                : Text(
+                    user.initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(

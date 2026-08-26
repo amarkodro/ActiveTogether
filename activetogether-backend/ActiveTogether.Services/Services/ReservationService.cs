@@ -287,6 +287,7 @@ namespace ActiveTogether.Services.Services
                 ActivityDateTime = reservation.Activity?.DateTime ?? default,
                 UserId = reservation.UserId,
                 UserName = reservation.User is null ? string.Empty : $"{reservation.User.FirstName} {reservation.User.LastName}",
+                UserProfileImageUrl = reservation.User?.ProfileImageUrl,
                 Status = reservation.Status.ToString(),
                 CreatedAt = reservation.CreatedAt,
                 ConfirmedAt = reservation.ConfirmedAt,

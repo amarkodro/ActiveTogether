@@ -16,6 +16,7 @@ class ProfileService {
     required String lastName,
     String? phoneNumber,
     int? cityId,
+    String? profileImageUrl,
   }) async {
     final response = await _apiClient.dio.put(
       '/api/Profile',
@@ -24,6 +25,7 @@ class ProfileService {
         'lastName': lastName,
         'phoneNumber': phoneNumber,
         'cityId': cityId,
+        'profileImageUrl': profileImageUrl,
       },
     );
     return Profile.fromJson(response.data as Map<String, dynamic>);

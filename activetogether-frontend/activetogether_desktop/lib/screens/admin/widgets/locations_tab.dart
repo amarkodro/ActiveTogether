@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as latlong;
 import 'package:provider/provider.dart';
 import '../../../models/city_option.dart';
 import '../../../models/location_option.dart';
@@ -40,6 +42,11 @@ class _LocationsTabState extends State<LocationsTab> {
     return 'Došlo je do greške. Pokušajte ponovo.';
   }
 
+  static const _defaultMapPosition = latlong.LatLng(
+    43.8563,
+    18.4131,
+  ); // Sarajevo
+
   Future<void> _showEditor({LocationOption? existing}) async {
     final apiClient = context.read<ApiClient>();
     List<CityOption> cities = [];
@@ -53,16 +60,14 @@ class _LocationsTabState extends State<LocationsTab> {
     final addressController = TextEditingController(
       text: existing?.address ?? '',
     );
-    final latController = TextEditingController(
-      text: existing?.latitude.toString() ?? '',
-    );
-    final lngController = TextEditingController(
-      text: existing?.longitude.toString() ?? '',
-    );
     int? cityId =
         existing?.cityId ?? (cities.isNotEmpty ? cities.first.id : null);
     final formKey = GlobalKey<FormState>();
     String? errorMessage;
+    latlong.LatLng selectedPosition = existing != null
+        ? latlong.LatLng(existing.latitude, existing.longitude)
+        : _defaultMapPosition;
+    final mapController = MapController();
 
     final saved = await showDialog<bool>(
       context: context,
@@ -72,7 +77,7 @@ class _LocationsTabState extends State<LocationsTab> {
             existing == null ? 'Nova lokacija' : 'Uređivanje lokacije',
           ),
           content: SizedBox(
-            width: 380,
+            width: 480,
             child: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -127,42 +132,78 @@ class _LocationsTabState extends State<LocationsTab> {
                       onChanged: (v) => setDialogState(() => cityId = v),
                     ),
                     const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: latController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                              signed: true,
+                    const Text(
+                      'Tačna lokacija (kliknite na mapu)',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: SizedBox(
+                        height: 260,
+                        child: Stack(
+                          children: [
+                            FlutterMap(
+                              mapController: mapController,
+                              options: MapOptions(
+                                initialCenter: selectedPosition,
+                                initialZoom: 12,
+                                onTap: (tapPosition, point) {
+                                  setDialogState(() => selectedPosition = point);
+                                },
+                              ),
+                              children: [
+                                TileLayer(
+                                  urlTemplate:
+                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  userAgentPackageName:
+                                      'com.activetogether.desktop',
+                                ),
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: selectedPosition,
+                                      width: 36,
+                                      height: 36,
+                                      child: const Icon(
+                                        Icons.location_pin,
+                                        color: Colors.red,
+                                        size: 36,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            decoration: const InputDecoration(
-                              labelText: 'Latitude',
-                              border: OutlineInputBorder(),
+                            Positioned(
+                              left: 8,
+                              right: 8,
+                              bottom: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 3,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  '${selectedPosition.latitude.toStringAsFixed(5)}, '
+                                  '${selectedPosition.longitude.toStringAsFixed(5)}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
                             ),
-                            validator: (v) => double.tryParse(v ?? '') == null
-                                ? 'Neispravna vrijednost.'
-                                : null,
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextFormField(
-                            controller: lngController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                              signed: true,
-                            ),
-                            decoration: const InputDecoration(
-                              labelText: 'Longitude',
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (v) => double.tryParse(v ?? '') == null
-                                ? 'Neispravna vrijednost.'
-                                : null,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                     if (errorMessage != null) ...[
                       const SizedBox(height: 12),
@@ -195,8 +236,8 @@ class _LocationsTabState extends State<LocationsTab> {
                       name: nameController.text.trim(),
                       address: addressController.text.trim(),
                       cityId: cityId!,
-                      latitude: double.parse(latController.text.trim()),
-                      longitude: double.parse(lngController.text.trim()),
+                      latitude: selectedPosition.latitude,
+                      longitude: selectedPosition.longitude,
                     );
                   } else {
                     await service.update(
@@ -204,8 +245,8 @@ class _LocationsTabState extends State<LocationsTab> {
                       name: nameController.text.trim(),
                       address: addressController.text.trim(),
                       cityId: cityId!,
-                      latitude: double.parse(latController.text.trim()),
-                      longitude: double.parse(lngController.text.trim()),
+                      latitude: selectedPosition.latitude,
+                      longitude: selectedPosition.longitude,
                     );
                   }
                   if (dialogContext.mounted)

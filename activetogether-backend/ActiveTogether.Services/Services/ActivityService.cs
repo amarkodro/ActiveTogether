@@ -295,6 +295,8 @@ namespace ActiveTogether.Services.Services
                 LocationId = activity.LocationId,
                 LocationName = activity.Location?.Name ?? string.Empty,
                 LocationAddress = activity.Location?.Address ?? string.Empty,
+                LocationLatitude = activity.Location?.Latitude ?? 0,
+                LocationLongitude = activity.Location?.Longitude ?? 0,
                 OrganizerId = activity.OrganizerId,
                 OrganizerName = activity.Organizer is null ? string.Empty : $"{activity.Organizer.FirstName} {activity.Organizer.LastName}",
                 DateTime = activity.DateTime,

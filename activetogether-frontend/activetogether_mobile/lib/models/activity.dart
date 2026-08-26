@@ -9,6 +9,8 @@ class Activity {
   final int locationId;
   final String locationName;
   final String locationAddress;
+  final double locationLatitude;
+  final double locationLongitude;
   final int organizerId;
   final String organizerName;
   final DateTime dateTime;
@@ -32,6 +34,8 @@ class Activity {
     required this.locationId,
     required this.locationName,
     required this.locationAddress,
+    this.locationLatitude = 0,
+    this.locationLongitude = 0,
     required this.organizerId,
     required this.organizerName,
     required this.dateTime,
@@ -60,6 +64,8 @@ class Activity {
       locationId: json['locationId'] as int,
       locationName: json['locationName'] as String? ?? '',
       locationAddress: json['locationAddress'] as String? ?? '',
+      locationLatitude: (json['locationLatitude'] as num?)?.toDouble() ?? 0,
+      locationLongitude: (json['locationLongitude'] as num?)?.toDouble() ?? 0,
       organizerId: json['organizerId'] as int,
       organizerName: json['organizerName'] as String? ?? '',
       dateTime: DateTime.parse(json['dateTime'] as String),

@@ -1,12 +1,16 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../../config/api_config.dart';
 import '../../../models/activity_list_item.dart';
 import '../../../models/location_option.dart';
 import '../../../models/reference_option.dart';
 import '../../../services/activity_service.dart';
 import '../../../services/api_client.dart';
+import '../../../services/file_upload_service.dart';
 import '../../../services/reference_data_service.dart';
+import '../../../widgets/location_picker_dialog.dart';
 
 class EditActivityDialog extends StatefulWidget {
   final ActivityListItem activity;
@@ -23,7 +27,6 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _capacityController;
   late final TextEditingController _priceController;
-  late final TextEditingController _imageUrlController;
 
   int? _categoryId;
   int? _activityTypeId;
@@ -31,6 +34,8 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
   late DateTime _date;
   late TimeOfDay _time;
   late bool _isFree;
+  String? _imageUrl;
+  bool _uploadingImage = false;
 
   List<ReferenceOption> _categories = [];
   List<ReferenceOption> _activityTypes = [];
@@ -50,7 +55,7 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
     _priceController = TextEditingController(
       text: a.price?.toStringAsFixed(2) ?? '',
     );
-    _imageUrlController = TextEditingController(text: a.imageUrl ?? '');
+    _imageUrl = a.imageUrl;
     _categoryId = a.categoryId;
     _activityTypeId = a.activityTypeId;
     _locationId = a.locationId;
@@ -86,8 +91,50 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
     _descriptionController.dispose();
     _capacityController.dispose();
     _priceController.dispose();
-    _imageUrlController.dispose();
     super.dispose();
+  }
+
+  static const _newLocationSentinel = -1;
+
+  Future<void> _openLocationPicker() async {
+    final created = await showDialog<LocationOption>(
+      context: context,
+      builder: (_) => const LocationPickerDialog(),
+    );
+    if (created == null || !mounted) return;
+    setState(() {
+      _locations = [..._locations, created];
+      _locationId = created.id;
+    });
+  }
+
+  Future<void> _pickImage() async {
+    final file = await openFile(
+      acceptedTypeGroups: [
+        const XTypeGroup(
+          label: 'Slike',
+          extensions: ['jpg', 'jpeg', 'png', 'webp'],
+        ),
+      ],
+    );
+    if (file == null || !mounted) return;
+
+    setState(() => _uploadingImage = true);
+    try {
+      final apiClient = context.read<ApiClient>();
+      final url = await FileUploadService(
+        apiClient,
+      ).uploadImage(filePath: file.path, type: 'activity');
+      if (!mounted) return;
+      setState(() => _imageUrl = url);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Otpremanje slike nije uspjelo.')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
+    }
   }
 
   Future<void> _pickDate() async {
@@ -140,9 +187,7 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
         capacity: int.parse(_capacityController.text.trim()),
         isFree: _isFree,
         price: _isFree ? null : double.tryParse(_priceController.text.trim()),
-        imageUrl: _imageUrlController.text.trim().isEmpty
-            ? null
-            : _imageUrlController.text.trim(),
+        imageUrl: _imageUrl,
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -256,8 +301,21 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                          const DropdownMenuItem(
+                            value: _newLocationSentinel,
+                            child: Text(
+                              '+ Nova lokacija (označi na mapi)',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
                         ],
-                        onChanged: (v) => setState(() => _locationId = v),
+                        onChanged: (v) {
+                          if (v == _newLocationSentinel) {
+                            _openLocationPicker();
+                            return;
+                          }
+                          setState(() => _locationId = v);
+                        },
                       ),
                       const SizedBox(height: 14),
                       Row(
@@ -337,14 +395,50 @@ class _EditActivityDialogState extends State<EditActivityDialog> {
                       ],
                       const SizedBox(height: 14),
                       const Text(
-                        'URL slike (opciono)',
+                        'Slika aktivnosti (opciono)',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 6),
-                      TextFormField(
-                        controller: _imageUrlController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
+                      GestureDetector(
+                        onTap: _uploadingImage ? null : _pickImage,
+                        child: Container(
+                          height: 140,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: _uploadingImage
+                              ? const Center(
+                                  child: CircularProgressIndicator(),
+                                )
+                              : _imageUrl == null
+                              ? const Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.add_photo_alternate_outlined,
+                                        size: 28,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Odaberi sliku',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Image.network(
+                                    ApiConfig.resolveImageUrl(_imageUrl)!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: 140,
+                                  ),
+                                ),
                         ),
                       ),
                       if (_errorMessage != null) ...[

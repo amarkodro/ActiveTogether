@@ -20,6 +20,12 @@ if (File.Exists(envPath))
 
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
+// wwwroot/uploads mora postojati PRIJE nego što se kreira WebApplicationBuilder,
+// jer ASP.NET Core tada odlučuje da li static files provider uopšte postoji
+// (ako foldera nema u tom trenutku, static fajlovi se nikad ne bi servirali,
+// čak i kad se folder naknadno kreira dok app već radi).
+Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads"));
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
@@ -112,6 +118,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IOrganizerRequestService, OrganizerRequestService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IRatingService, RatingService>();
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 
 builder.Services.AddCors(options =>
 {
@@ -142,6 +149,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

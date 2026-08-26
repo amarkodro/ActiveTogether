@@ -7,6 +7,7 @@ class ReservationItem {
   final DateTime activityDateTime;
   final int userId;
   final String userName;
+  final String? userProfileImageUrl;
   final String status;
   final DateTime createdAt;
   final DateTime? confirmedAt;
@@ -22,6 +23,7 @@ class ReservationItem {
     required this.activityDateTime,
     required this.userId,
     required this.userName,
+    this.userProfileImageUrl,
     required this.status,
     required this.createdAt,
     this.confirmedAt,
@@ -39,6 +41,7 @@ class ReservationItem {
       activityDateTime: DateTime.parse(json['activityDateTime'] as String),
       userId: json['userId'] as int,
       userName: json['userName'] as String,
+      userProfileImageUrl: json['userProfileImageUrl'] as String?,
       status: json['status'] as String,
       createdAt: DateTime.parse(json['createdAt'] as String),
       confirmedAt: json['confirmedAt'] != null

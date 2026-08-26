@@ -8,6 +8,7 @@
         public DateTime ActivityDateTime { get; set; }
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
+        public string? UserProfileImageUrl { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime? ConfirmedAt { get; set; }

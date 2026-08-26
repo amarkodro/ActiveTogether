@@ -13,14 +13,14 @@ class LocationService {
         .toList();
   }
 
-  Future<void> create({
+  Future<LocationOption> create({
     required String name,
     required String address,
     required int cityId,
     required double latitude,
     required double longitude,
   }) async {
-    await _apiClient.dio.post(
+    final response = await _apiClient.dio.post(
       '/api/Locations',
       data: {
         'name': name,
@@ -30,6 +30,7 @@ class LocationService {
         'longitude': longitude,
       },
     );
+    return LocationOption.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<void> update(

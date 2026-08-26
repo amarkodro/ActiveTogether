@@ -64,7 +64,8 @@ namespace ActiveTogether.Services.Services
             user.LastName = request.LastName;
             user.PhoneNumber = request.PhoneNumber;
             user.CityId = request.CityId;
-            user.ProfileImageUrl = request.ProfileImageUrl;
+            if (request.ProfileImageUrl != null)
+                user.ProfileImageUrl = request.ProfileImageUrl;
             user.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

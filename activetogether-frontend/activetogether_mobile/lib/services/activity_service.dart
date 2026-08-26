@@ -56,6 +56,7 @@ class ActivityService {
     required int capacity,
     required bool isFree,
     double? price,
+    String? imageUrl,
   }) async {
     final response = await _apiClient.dio.post(
       '/api/Activities',
@@ -69,6 +70,7 @@ class ActivityService {
         'capacity': capacity,
         'isFree': isFree,
         'price': isFree ? null : price,
+        'imageUrl': imageUrl,
       },
     );
     return Activity.fromJson(response.data as Map<String, dynamic>);
@@ -85,6 +87,7 @@ class ActivityService {
     required int capacity,
     required bool isFree,
     double? price,
+    String? imageUrl,
   }) async {
     final response = await _apiClient.dio.put(
       '/api/Activities/$id',
@@ -98,6 +101,7 @@ class ActivityService {
         'capacity': capacity,
         'isFree': isFree,
         'price': isFree ? null : price,
+        'imageUrl': imageUrl,
       },
     );
     return Activity.fromJson(response.data as Map<String, dynamic>);

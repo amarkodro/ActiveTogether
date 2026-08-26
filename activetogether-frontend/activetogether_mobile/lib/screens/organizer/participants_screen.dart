@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../config/api_config.dart';
 import '../../models/reservation.dart';
 import '../../services/api_client.dart';
 import '../../services/reservation_service.dart';
@@ -211,14 +212,31 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
                                 child: ListTile(
                                   leading: CircleAvatar(
                                     backgroundColor: const Color(0xFF1E3A8A),
-                                    child: Text(
-                                      r.userName.isNotEmpty
-                                          ? r.userName[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                    backgroundImage:
+                                        ApiConfig.resolveImageUrl(
+                                              r.userProfileImageUrl,
+                                            ) !=
+                                            null
+                                        ? NetworkImage(
+                                            ApiConfig.resolveImageUrl(
+                                              r.userProfileImageUrl,
+                                            )!,
+                                          )
+                                        : null,
+                                    child:
+                                        ApiConfig.resolveImageUrl(
+                                              r.userProfileImageUrl,
+                                            ) !=
+                                            null
+                                        ? null
+                                        : Text(
+                                            r.userName.isNotEmpty
+                                                ? r.userName[0].toUpperCase()
+                                                : '?',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                   ),
                                   title: Text(r.userName),
                                   subtitle: Text('Rezervisano: $dateLabel'),
