@@ -10,6 +10,7 @@ class ActivityService {
   Future<PagedResult<ActivityListItem>> getAll({
     String? name,
     int? categoryId,
+    int? activityTypeId,
     String? status,
     int page = 1,
     int pageSize = 10,
@@ -19,6 +20,7 @@ class ActivityService {
       queryParameters: {
         if (name != null && name.isNotEmpty) 'name': name,
         if (categoryId != null) 'categoryId': categoryId,
+        if (activityTypeId != null) 'activityTypeId': activityTypeId,
         if (status != null) 'status': status,
         'page': page,
         'pageSize': pageSize,

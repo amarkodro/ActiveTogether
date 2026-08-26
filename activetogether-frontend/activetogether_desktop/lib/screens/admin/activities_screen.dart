@@ -20,27 +20,36 @@ class ActivitiesScreen extends StatefulWidget {
 class _ActivitiesScreenState extends State<ActivitiesScreen> {
   final _searchController = TextEditingController();
   int? _selectedCategoryId;
+  int? _selectedActivityTypeId;
   String? _selectedStatus;
   int _page = 1;
   final int _pageSize = 10;
 
   List<ReferenceOption> _categories = [];
+  List<ReferenceOption> _activityTypes = [];
   late Future<PagedResult<ActivityListItem>> _future;
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _loadFilterOptions();
     _future = _load();
   }
 
-  Future<void> _loadCategories() async {
+  Future<void> _loadFilterOptions() async {
     final apiClient = context.read<ApiClient>();
+    final service = ReferenceDataService(apiClient);
     try {
-      final categories = await ReferenceDataService(apiClient).getCategories();
-      setState(() => _categories = categories);
+      final results = await Future.wait([
+        service.getCategories(),
+        service.getActivityTypes(),
+      ]);
+      setState(() {
+        _categories = results[0] as List<ReferenceOption>;
+        _activityTypes = results[1] as List<ReferenceOption>;
+      });
     } catch (_) {
-      // filter ostaje prazan ako ne uspije, ekran i dalje radi
+      // filteri ostaju prazni ako ne uspije, ekran i dalje radi
     }
   }
 
@@ -49,6 +58,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     return ActivityService(apiClient).getAll(
       name: _searchController.text.trim(),
       categoryId: _selectedCategoryId,
+      activityTypeId: _selectedActivityTypeId,
       status: _selectedStatus,
       page: _page,
       pageSize: _pageSize,
@@ -179,6 +189,29 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
                   ],
                   onChanged: (value) {
                     _selectedCategoryId = value;
+                    _refresh(resetPage: true);
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<int?>(
+                  initialValue: _selectedActivityTypeId,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                  hint: const Text('Sve vrste'),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Sve vrste'),
+                    ),
+                    for (final t in _activityTypes)
+                      DropdownMenuItem<int?>(value: t.id, child: Text(t.name)),
+                  ],
+                  onChanged: (value) {
+                    _selectedActivityTypeId = value;
                     _refresh(resetPage: true);
                   },
                 ),

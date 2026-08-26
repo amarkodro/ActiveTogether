@@ -25,7 +25,9 @@ namespace ActiveTogether.Services.Services
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search.Name))
-                query = query.Where(u => (u.FirstName + " " + u.LastName).Contains(search.Name));
+                query = query.Where(u =>
+                    (u.FirstName + " " + u.LastName).Contains(search.Name) ||
+                    u.Email.Contains(search.Name));
 
             if (!string.IsNullOrWhiteSpace(search.Email))
                 query = query.Where(u => u.Email.Contains(search.Email));

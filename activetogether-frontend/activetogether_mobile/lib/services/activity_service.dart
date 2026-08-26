@@ -16,6 +16,8 @@ class ActivityService {
     int? categoryId,
     int? cityId,
     bool? isFree,
+    DateTime? dateFrom,
+    DateTime? dateTo,
     int pageSize = 30,
   }) async {
     final response = await _apiClient.dio.get(
@@ -25,6 +27,8 @@ class ActivityService {
         if (categoryId != null) 'categoryId': categoryId,
         if (cityId != null) 'cityId': cityId,
         if (isFree != null) 'isFree': isFree,
+        if (dateFrom != null) 'dateFrom': dateFrom.toIso8601String(),
+        if (dateTo != null) 'dateTo': dateTo.toIso8601String(),
         'page': 1,
         'pageSize': pageSize,
       },

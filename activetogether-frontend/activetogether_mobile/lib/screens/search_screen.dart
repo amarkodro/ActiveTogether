@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/activity.dart';
 import '../models/category_option.dart';
@@ -28,6 +29,7 @@ class _SearchScreenState extends State<SearchScreen> {
   int? _selectedCategoryId;
   int? _selectedCityId;
   bool? _selectedIsFree;
+  DateTime? _selectedDate;
 
   List<Activity> _results = [];
   bool _isLoading = true;
@@ -61,11 +63,23 @@ class _SearchScreenState extends State<SearchScreen> {
     });
     try {
       final apiClient = context.read<ApiClient>();
+      final dateFrom = _selectedDate == null
+          ? null
+          : DateTime(
+              _selectedDate!.year,
+              _selectedDate!.month,
+              _selectedDate!.day,
+            );
+      final dateTo = dateFrom?.add(
+        const Duration(hours: 23, minutes: 59, seconds: 59),
+      );
       final results = await ActivityService(apiClient).getAll(
         name: _searchController.text.trim(),
         categoryId: _selectedCategoryId,
         cityId: _selectedCityId,
         isFree: _selectedIsFree,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
       );
       setState(() {
         _results = results;
@@ -77,6 +91,23 @@ class _SearchScreenState extends State<SearchScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 730)),
+    );
+    if (picked == null) return;
+    setState(() => _selectedDate = picked);
+    _search();
+  }
+
+  void _clearDate() {
+    setState(() => _selectedDate = null);
+    _search();
   }
 
   void _onSearchChanged(String _) {
@@ -236,6 +267,40 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _pickDate,
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(
+                    _selectedDate == null
+                        ? 'Odaberi datum'
+                        : DateFormat('dd.MM.yyyy.').format(_selectedDate!),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            if (_selectedDate != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 16, top: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: _clearDate,
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: const Text('Ukloni filter datuma'),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 6),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Align(
