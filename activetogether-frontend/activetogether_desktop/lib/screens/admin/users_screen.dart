@@ -86,8 +86,18 @@ class _UsersScreenState extends State<UsersScreen> {
     }
 
     final apiClient = context.read<ApiClient>();
-    await UserService(apiClient).setActive(user.id, !user.isActive);
-    _refresh();
+    try {
+      await UserService(apiClient).setActive(user.id, !user.isActive);
+      _refresh();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Došlo je do greške. Pokušajte ponovo.'),
+          ),
+        );
+      }
+    }
   }
 
   @override

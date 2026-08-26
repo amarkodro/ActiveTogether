@@ -12,6 +12,8 @@ namespace ActiveTogether.Subscriber;
 public class Worker(ILogger<Worker> logger, IConfiguration configuration) : BackgroundService
 {
     private const string QueueName = "email-notifications";
+    private const string RetryCountHeader = "x-retry-count";
+    private const int MaxRetryAttempts = 5;
 
     private IConnection? _connection;
     private IChannel? _channel;
@@ -72,8 +74,25 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration) : Back
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Greška pri obradi email notifikacije.");
-                await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: true, cancellationToken: stoppingToken);
+                var retryCount = GetRetryCount(ea.BasicProperties.Headers);
+
+                if (retryCount >= MaxRetryAttempts)
+                {
+                    logger.LogError(ex,
+                        "Greška pri obradi email notifikacije. Dostignut maksimalan broj pokušaja ({RetryCount}), poruka se odbacuje.",
+                        retryCount);
+                    await _channel!.BasicNackAsync(deliveryTag: ea.DeliveryTag, multiple: false, requeue: false, cancellationToken: stoppingToken);
+                    return;
+                }
+
+                var backoffSeconds = Math.Pow(2, retryCount);
+                logger.LogError(ex,
+                    "Greška pri obradi email notifikacije. Pokušaj {RetryCount}/{MaxRetries}, ponovni pokušaj za {Backoff}s.",
+                    retryCount + 1, MaxRetryAttempts, backoffSeconds);
+
+                await Task.Delay(TimeSpan.FromSeconds(backoffSeconds), stoppingToken);
+                await RepublishWithRetryCountAsync(ea, retryCount + 1, stoppingToken);
+                await _channel!.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false, cancellationToken: stoppingToken);
             }
         };
 
@@ -82,6 +101,43 @@ public class Worker(ILogger<Worker> logger, IConfiguration configuration) : Back
         logger.LogInformation("Subscriber pokrenut, čeka poruke na redu '{Queue}'.", QueueName);
 
         await Task.Delay(Timeout.Infinite, stoppingToken);
+    }
+
+    private static int GetRetryCount(IDictionary<string, object?>? headers)
+    {
+        if (headers != null && headers.TryGetValue(RetryCountHeader, out var value) && value != null)
+        {
+            return value switch
+            {
+                int i => i,
+                long l => (int)l,
+                byte[] bytes => int.TryParse(Encoding.UTF8.GetString(bytes), out var parsed) ? parsed : 0,
+                _ => 0
+            };
+        }
+        return 0;
+    }
+
+    private async Task RepublishWithRetryCountAsync(BasicDeliverEventArgs ea, int retryCount, CancellationToken cancellationToken)
+    {
+        var headers = new Dictionary<string, object?>(ea.BasicProperties.Headers ?? new Dictionary<string, object?>())
+        {
+            [RetryCountHeader] = retryCount
+        };
+
+        var properties = new BasicProperties
+        {
+            Persistent = true,
+            Headers = headers
+        };
+
+        await _channel!.BasicPublishAsync(
+            exchange: string.Empty,
+            routingKey: QueueName,
+            mandatory: false,
+            basicProperties: properties,
+            body: ea.Body,
+            cancellationToken: cancellationToken);
     }
 
     private async Task SendEmailAsync(EmailNotificationMessage message, CancellationToken cancellationToken)
