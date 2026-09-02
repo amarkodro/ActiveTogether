@@ -192,6 +192,33 @@ namespace ActiveTogether.Services.Database.Migrations
                     b.ToTable("Countries");
                 });
 
+            modelBuilder.Entity("ActiveTogether.Services.Database.Entities.Favorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ActivityId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityId");
+
+                    b.HasIndex("UserId", "ActivityId")
+                        .IsUnique();
+
+                    b.ToTable("Favorites");
+                });
+
             modelBuilder.Entity("ActiveTogether.Services.Database.Entities.Location", b =>
                 {
                     b.Property<int>("Id")
@@ -465,6 +492,9 @@ namespace ActiveTogether.Services.Database.Migrations
                     b.Property<DateTime?>("ConfirmedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ConfirmedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -653,6 +683,25 @@ namespace ActiveTogether.Services.Database.Migrations
                         .IsRequired();
 
                     b.Navigation("Country");
+                });
+
+            modelBuilder.Entity("ActiveTogether.Services.Database.Entities.Favorite", b =>
+                {
+                    b.HasOne("ActiveTogether.Services.Database.Entities.Activity", "Activity")
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ActiveTogether.Services.Database.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Activity");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ActiveTogether.Services.Database.Entities.Location", b =>

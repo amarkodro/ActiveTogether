@@ -119,6 +119,45 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen> {
     }
   }
 
+  Future<void> _completeActivity(ActivityListItem activity) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Označi kao završeno'),
+        content: Text(
+          'Da li ste sigurni da želite označiti aktivnost "${activity.name}" kao završenu? '
+          'Potvrđene rezervacije će postati završene, a učesnici će moći ostaviti ocjenu.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Otkaži'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Da, označi kao završeno'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final apiClient = context.read<ApiClient>();
+    try {
+      await ActivityService(apiClient).complete(activity.id);
+      _refresh();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Došlo je do greške. Pokušajte ponovo.'),
+          ),
+        );
+      }
+    }
+  }
+
   Color _capacityColor(double ratio) {
     if (ratio >= 0.9) return AppColors.danger;
     if (ratio >= 0.7) return AppColors.warning;
@@ -365,7 +404,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen> {
           Expanded(flex: 2, child: Text('DATUM', style: style)),
           Expanded(flex: 2, child: Text('KAPACITET', style: style)),
           Expanded(flex: 2, child: Text('STATUS', style: style)),
-          SizedBox(width: 90, child: Text('AKCIJE', style: style)),
+          SizedBox(width: 120, child: Text('AKCIJE', style: style)),
         ],
       ),
     );
@@ -373,6 +412,9 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen> {
 
   Widget _buildRow(ActivityListItem activity) {
     final canCancel = activity.status == 'Active' || activity.status == 'Draft';
+    final canComplete =
+        activity.status == 'Active' &&
+        activity.dateTime.isBefore(DateTime.now());
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -462,9 +504,16 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen> {
             ),
           ),
           SizedBox(
-            width: 90,
+            width: 120,
             child: Row(
               children: [
+                if (canComplete)
+                  IconButton(
+                    icon: const Icon(Icons.check_circle_outline, size: 20),
+                    color: AppColors.success,
+                    tooltip: 'Označi kao završeno',
+                    onPressed: () => _completeActivity(activity),
+                  ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 20),
                   tooltip: 'Uredi',

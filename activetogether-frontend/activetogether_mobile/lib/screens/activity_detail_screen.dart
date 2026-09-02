@@ -7,6 +7,7 @@ import '../config/api_config.dart';
 import '../models/activity.dart';
 import '../services/activity_service.dart';
 import '../services/api_client.dart';
+import '../services/favorite_service.dart';
 import '../services/reservation_service.dart';
 import '../theme/app_colors.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -25,6 +26,8 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   late Future<Activity> _activityFuture;
   bool _isReserving = false;
   String? _myReservationStatus;
+  bool _isFavorite = false;
+  bool _favoriteBusy = false;
 
   @override
   void initState() {
@@ -46,7 +49,34 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
     } catch (_) {
       _myReservationStatus = null;
     }
+    try {
+      _isFavorite = await FavoriteService(
+        apiClient,
+      ).getStatus(widget.activityId);
+    } catch (_) {
+      _isFavorite = false;
+    }
     return activity;
+  }
+
+  Future<void> _toggleFavorite(int activityId) async {
+    setState(() => _favoriteBusy = true);
+    final apiClient = context.read<ApiClient>();
+    try {
+      if (_isFavorite) {
+        await FavoriteService(apiClient).remove(activityId);
+      } else {
+        await FavoriteService(apiClient).add(activityId);
+      }
+      if (mounted) setState(() => _isFavorite = !_isFavorite);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Došlo je do greške. Pokušajte ponovo.')),
+      );
+    } finally {
+      if (mounted) setState(() => _favoriteBusy = false);
+    }
   }
 
   Future<void> _openInMaps(Activity activity) async {
@@ -194,6 +224,26 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                           IconButton(
                             icon: const Icon(Icons.arrow_back),
                             onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: _favoriteBusy
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Icon(
+                                    _isFavorite
+                                        ? Icons.favorite
+                                        : Icons.favorite_border,
+                                    color: _isFavorite ? Colors.red : null,
+                                  ),
+                            onPressed: _favoriteBusy
+                                ? null
+                                : () => _toggleFavorite(activity.id),
                           ),
                         ],
                       ),
@@ -357,9 +407,16 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
 
           String label;
           if (alreadyReserved) {
-            label = _myReservationStatus == 'Confirmed'
-                ? 'REZERVACIJA POTVRĐENA'
-                : 'REZERVACIJA NA ČEKANJU';
+            switch (_myReservationStatus) {
+              case 'Confirmed':
+                label = 'REZERVACIJA POTVRĐENA';
+                break;
+              case 'Completed':
+                label = 'AKTIVNOST ZAVRŠENA';
+                break;
+              default:
+                label = 'REZERVACIJA NA ČEKANJU';
+            }
           } else if (full) {
             label = 'POPUNJENO';
           } else {

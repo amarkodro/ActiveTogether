@@ -14,10 +14,12 @@ namespace ActiveTogether.Services.Services
         private const int MaxPageSize = 100;
 
         private readonly ActiveTogetherDbContext _context;
+        private readonly INotificationService _notificationService;
 
-        public ActivityService(ActiveTogetherDbContext context)
+        public ActivityService(ActiveTogetherDbContext context, INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         public async Task<PagedResult<ActivityResponse>> GetAllAsync(ActivitySearchObject search, int? organizerId, bool includeAllStatuses, int? currentUserId)
@@ -240,13 +242,75 @@ namespace ActiveTogether.Services.Services
 
             EnsureOwnership(activity, currentUserId, isAdmin);
 
-            if (activity.Status is ActivityStatus.Cancelled or ActivityStatus.Completed)
+            if (!StatusTransitions.CanTransition(activity.Status, ActivityStatus.Cancelled))
                 throw new BusinessException("Aktivnost je već otkazana ili završena.");
 
             activity.Status = ActivityStatus.Cancelled;
             activity.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            return await GetByIdAsync(activity.Id);
+        }
+
+        public async Task<ActivityResponse> CompleteAsync(int id, int currentUserId, bool isAdmin)
+        {
+            var activity = await _context.Activities.FindAsync(id)
+                ?? throw new NotFoundException($"Aktivnost sa Id {id} ne postoji.");
+
+            EnsureOwnership(activity, currentUserId, isAdmin);
+
+            if (!StatusTransitions.CanTransition(activity.Status, ActivityStatus.Completed))
+                throw new BusinessException("Aktivnost se ne može označiti kao završena iz trenutnog statusa.");
+
+            if (activity.DateTime > DateTime.UtcNow)
+                throw new BusinessException("Aktivnost još nije održana.");
+
+            activity.Status = ActivityStatus.Completed;
+            activity.UpdatedAt = DateTime.UtcNow;
+
+            var reservations = await _context.Reservations
+                .Where(r => r.ActivityId == id &&
+                    (r.Status == ReservationStatus.Confirmed || r.Status == ReservationStatus.Pending))
+                .ToListAsync();
+
+            foreach (var reservation in reservations)
+            {
+                if (reservation.Status == ReservationStatus.Confirmed)
+                {
+                    reservation.Status = ReservationStatus.Completed;
+                    reservation.CompletedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    reservation.Status = ReservationStatus.Cancelled;
+                    reservation.CancellationReason = "Aktivnost je završena bez potvrde rezervacije.";
+                    reservation.CancelledAt = DateTime.UtcNow;
+                    reservation.CancelledByUserId = currentUserId;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            foreach (var reservation in reservations)
+            {
+                if (reservation.Status == ReservationStatus.Completed)
+                {
+                    await _notificationService.NotifyAsync(
+                        reservation.UserId,
+                        NotificationType.ReservationCompleted,
+                        "Aktivnost završena",
+                        $"Aktivnost \"{activity.Name}\" je završena. Ostavite ocjenu i komentar!");
+                }
+                else
+                {
+                    await _notificationService.NotifyAsync(
+                        reservation.UserId,
+                        NotificationType.ReservationCancelled,
+                        "Rezervacija otkazana",
+                        $"Vaša rezervacija za aktivnost \"{activity.Name}\" je otkazana jer nije potvrđena prije termina.");
+                }
+            }
 
             return await GetByIdAsync(activity.Id);
         }

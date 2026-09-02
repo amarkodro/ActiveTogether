@@ -141,11 +141,12 @@ namespace ActiveTogether.Services.Services
 
             EnsureOrganizerOwnership(reservation, currentUserId, isAdmin);
 
-            if (reservation.Status != ReservationStatus.Pending)
+            if (!StatusTransitions.CanTransition(reservation.Status, ReservationStatus.Confirmed))
                 throw new BusinessException("Samo rezervacije na čekanju mogu biti potvrđene.");
 
             reservation.Status = ReservationStatus.Confirmed;
             reservation.ConfirmedAt = DateTime.UtcNow;
+            reservation.ConfirmedByUserId = currentUserId;
 
             await _context.SaveChangesAsync();
 
@@ -167,7 +168,7 @@ namespace ActiveTogether.Services.Services
 
             EnsureOrganizerOwnership(reservation, currentUserId, isAdmin);
 
-            if (reservation.Status != ReservationStatus.Confirmed)
+            if (!StatusTransitions.CanTransition(reservation.Status, ReservationStatus.Completed))
                 throw new BusinessException("Samo potvrđene rezervacije mogu biti označene kao završene.");
 
             if (reservation.Activity!.DateTime > DateTime.UtcNow)
@@ -200,7 +201,7 @@ namespace ActiveTogether.Services.Services
             if (!isOwner && !isOrganizer && !isAdmin)
                 throw new BusinessException("Nemate dozvolu za otkazivanje ove rezervacije.");
 
-            if (reservation.Status is ReservationStatus.Cancelled or ReservationStatus.Completed)
+            if (!StatusTransitions.CanTransition(reservation.Status, ReservationStatus.Cancelled))
                 throw new BusinessException("Rezervacija je već otkazana ili završena.");
 
             if ((isOrganizer || isAdmin) && !isOwner && string.IsNullOrWhiteSpace(request.Reason))

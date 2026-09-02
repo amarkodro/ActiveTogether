@@ -14,6 +14,7 @@ import '../services/profile_service.dart';
 import '../theme/app_colors.dart';
 import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
+import 'favorites_screen.dart';
 import 'notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -369,6 +370,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                ),
+                _menuItem(
+                  Icons.favorite_border,
+                  'Omiljene aktivnosti',
+                  () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const FavoritesScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _menuItem(Icons.lock_outline, 'Promijeni lozinku', () {
                   Navigator.of(context).push(

@@ -199,6 +199,7 @@ namespace ActiveTogether.Services.Database.Seed
                 Capacity = 10,
                 IsFree = true,
                 Status = ActivityStatus.Active,
+                ImageUrl = "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800",
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -215,6 +216,7 @@ namespace ActiveTogether.Services.Database.Seed
                 IsFree = false,
                 Price = 10,
                 Status = ActivityStatus.Active,
+                ImageUrl = "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800",
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -230,6 +232,7 @@ namespace ActiveTogether.Services.Database.Seed
                 Capacity = 15,
                 IsFree = true,
                 Status = ActivityStatus.Active,
+                ImageUrl = "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800",
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -246,6 +249,7 @@ namespace ActiveTogether.Services.Database.Seed
                 IsFree = false,
                 Price = 5,
                 Status = ActivityStatus.Completed,
+                ImageUrl = "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800",
                 CreatedAt = DateTime.UtcNow.AddDays(-10)
             };
 

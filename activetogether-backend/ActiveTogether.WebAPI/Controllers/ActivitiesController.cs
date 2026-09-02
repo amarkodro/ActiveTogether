@@ -68,6 +68,16 @@ namespace ActiveTogether.WebAPI.Controllers
             var isAdmin = User.IsInRole(Roles.Admin);
             return Ok(await _service.CancelAsync(id, userId, isAdmin));
         }
+
+        [HttpPut("{id}/complete")]
+        [Authorize(Roles = Roles.Organizer + "," + Roles.Admin)]
+        public async Task<IActionResult> Complete(int id)
+        {
+            var userId = GetCurrentUserId();
+            var isAdmin = User.IsInRole(Roles.Admin);
+            return Ok(await _service.CompleteAsync(id, userId, isAdmin));
+        }
+
         private int? GetCurrentUserIdOrNull()
         {
             var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);

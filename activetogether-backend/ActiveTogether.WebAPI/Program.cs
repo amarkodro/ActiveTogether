@@ -119,6 +119,7 @@ builder.Services.AddScoped<IOrganizerRequestService, OrganizerRequestService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 
 builder.Services.AddCors(options =>
 {

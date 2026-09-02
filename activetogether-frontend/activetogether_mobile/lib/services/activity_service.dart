@@ -110,4 +110,8 @@ class ActivityService {
     );
     return Activity.fromJson(response.data as Map<String, dynamic>);
   }
+
+  Future<void> complete(int id) async {
+    await _apiClient.dio.put('/api/Activities/$id/complete');
+  }
 }

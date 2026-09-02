@@ -26,6 +26,7 @@ namespace ActiveTogether.Services.Database
         public DbSet<SearchHistory> SearchHistories { get; set; }
         public DbSet<ActivityView> ActivityViews { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -173,6 +174,22 @@ namespace ActiveTogether.Services.Database
                 .WithMany()
                 .HasForeignKey(rt => rt.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Favorite>()
+                .HasOne(f => f.User)
+                .WithMany()
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Favorite>()
+                .HasOne(f => f.Activity)
+                .WithMany()
+                .HasForeignKey(f => f.ActivityId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Favorite>()
+                .HasIndex(f => new { f.UserId, f.ActivityId })
+                .IsUnique();
         }
     }
 }

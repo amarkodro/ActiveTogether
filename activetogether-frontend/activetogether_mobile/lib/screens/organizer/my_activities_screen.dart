@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -39,6 +40,55 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
       _activitiesFuture = _load();
     });
     await _activitiesFuture;
+  }
+
+  Future<void> _completeActivity(Activity activity) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Označi kao završeno'),
+        content: Text(
+          'Da li sigurno želiš označiti "${activity.name}" kao završenu aktivnost? '
+          'Potvrđene rezervacije će postati završene, a učesnici će moći ostaviti ocjenu.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Označi kao završeno'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final apiClient = context.read<ApiClient>();
+      await ActivityService(apiClient).complete(activity.id);
+      if (!mounted) return;
+      await _refresh();
+      if (!mounted) return;
+      _tabController.animateTo(1);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aktivnost je označena kao završena.')),
+      );
+    } catch (e) {
+      String message = 'Označavanje kao završeno nije uspjelo.';
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] != null) {
+          message = data['message'].toString();
+        }
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   @override
@@ -143,6 +193,9 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
           final dateLabel = DateFormat(
             'dd.MM.yyyy. HH:mm',
           ).format(activity.dateTime);
+          final canComplete =
+              activity.status == 'Active' &&
+              activity.dateTime.isBefore(DateTime.now());
 
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
@@ -167,7 +220,16 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                 '$dateLabel • ${activity.locationName}\n${activity.reservedCount}/${activity.capacity} prijavljenih',
               ),
               isThreeLine: true,
-              trailing: const Icon(Icons.chevron_right),
+              trailing: canComplete
+                  ? IconButton(
+                      icon: const Icon(
+                        Icons.check_circle_outline,
+                        color: Color(0xFF16A34A),
+                      ),
+                      tooltip: 'Označi kao završeno',
+                      onPressed: () => _completeActivity(activity),
+                    )
+                  : const Icon(Icons.chevron_right),
             ),
           );
         },

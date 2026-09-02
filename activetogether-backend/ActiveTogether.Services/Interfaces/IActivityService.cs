@@ -10,5 +10,6 @@ namespace ActiveTogether.Services.Interfaces
         Task<ActivityResponse> CreateAsync(ActivityUpsertRequest request, int organizerId);
         Task<ActivityResponse> UpdateAsync(int id, ActivityUpsertRequest request, int currentUserId, bool isAdmin);
         Task<ActivityResponse> CancelAsync(int id, int currentUserId, bool isAdmin);
+        Task<ActivityResponse> CompleteAsync(int id, int currentUserId, bool isAdmin);
     }
 }
