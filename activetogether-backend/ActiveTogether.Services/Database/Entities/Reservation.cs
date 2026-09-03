@@ -28,6 +28,13 @@ namespace ActiveTogether.Services.Database.Entities
         public DateTime? CancelledAt { get; set; }
         public int? CancelledByUserId { get; set; }
 
+        /// <summary>
+        /// Kada je učesniku poslan ActivityReminder podsjetnik za ovu rezervaciju.
+        /// Null dok podsjetnik nije poslan; koristi se da pozadinski servis ne pošalje
+        /// isti podsjetnik više puta.
+        /// </summary>
+        public DateTime? ReminderSentAt { get; set; }
+
         public Payment? Payment { get; set; }
         public Rating? Rating { get; set; }
     }

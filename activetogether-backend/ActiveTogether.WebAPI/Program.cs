@@ -139,6 +139,10 @@ builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IFavoriteService, FavoriteService>();
 
+// Pozadinski servis za vremenske notifikacije (ActivityReminder, Recommendation) -
+// vidi ActiveTogether.WebAPI/BackgroundServices/NotificationTriggersBackgroundService.cs.
+builder.Services.AddHostedService<ActiveTogether.WebAPI.BackgroundServices.NotificationTriggersBackgroundService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
