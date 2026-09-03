@@ -38,6 +38,9 @@ namespace ActiveTogether.Services.Services
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
                 throw new BusinessException("Email je već registrovan.");
 
+            if (request.CityId.HasValue && !await _context.Cities.AnyAsync(c => c.Id == request.CityId.Value))
+                throw new NotFoundException($"Grad sa Id {request.CityId} ne postoji.");
+
             var user = new User
             {
                 FirstName = request.FirstName,

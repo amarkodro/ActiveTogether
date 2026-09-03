@@ -31,6 +31,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+// Automatska [ApiController] model-state validacija (DataAnnotations) treba da vrati
+// isti { message } oblik odgovora kao BusinessException, umjesto default ValidationProblemDetails
+// formata, da bi Flutter strane (koje čitaju data['message']) mogle prikazati konkretnu grešku.
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var message = string.Join(" ", context.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage));
+
+        return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new
+        {
+            message = string.IsNullOrWhiteSpace(message) ? "Nevalidan zahtjev." : message
+        });
+    };
+});
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

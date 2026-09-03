@@ -158,7 +158,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   validator: (v) {
                     if (v == null || v.trim().isEmpty)
                       return 'Email je obavezan.';
-                    if (!v.contains('@')) return 'Unesite ispravan email.';
+                    if (!RegExp(
+                      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                    ).hasMatch(v.trim())) {
+                      return 'Unesite ispravan email.';
+                    }
                     return null;
                   },
                 ),
@@ -202,6 +206,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                   ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    if (!RegExp(
+                      r'^[0-9+()\-\s]{6,30}$',
+                    ).hasMatch(v.trim())) {
+                      return 'Broj telefona nije u ispravnom formatu.';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 14),
                 const Text(

@@ -82,6 +82,9 @@ namespace ActiveTogether.Services.Services
             if (emailTaken)
                 throw new BusinessException("Email adresa je već u upotrebi.");
 
+            if (request.CityId.HasValue && !await _context.Cities.AnyAsync(c => c.Id == request.CityId.Value))
+                throw new NotFoundException($"Grad sa Id {request.CityId} ne postoji.");
+
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
             user.Email = request.Email;

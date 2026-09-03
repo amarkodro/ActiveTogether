@@ -139,6 +139,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                   ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    if (!RegExp(
+                      r'^[0-9+()\-\s]{6,30}$',
+                    ).hasMatch(v.trim())) {
+                      return 'Broj telefona nije u ispravnom formatu.';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 14),
                 const Text(
