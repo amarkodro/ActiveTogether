@@ -254,9 +254,19 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
                                             IconButton(
                                               icon: const Icon(
                                                 Icons.cancel,
-                                                color: Colors.red,
+                                                color: r.activityDateTime
+                                                        .isAfter(
+                                                          DateTime.now(),
+                                                        )
+                                                    ? Colors.red
+                                                    : Colors.grey,
                                               ),
-                                              onPressed: () => _reject(r),
+                                              onPressed:
+                                                  r.activityDateTime.isAfter(
+                                                    DateTime.now(),
+                                                  )
+                                                  ? () => _reject(r)
+                                                  : null,
                                             ),
                                           ],
                                         )

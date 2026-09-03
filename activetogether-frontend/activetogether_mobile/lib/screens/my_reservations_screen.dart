@@ -260,7 +260,9 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
           final dateLabel = DateFormat(
             'dd.MM.yyyy. HH:mm',
           ).format(reservation.activityDateTime);
-          final canCancel = reservation.status == 'Confirmed';
+          final canCancel =
+              reservation.status == 'Confirmed' &&
+              reservation.activityDateTime.isAfter(DateTime.now());
 
           return Card(
             margin: const EdgeInsets.only(bottom: 12),

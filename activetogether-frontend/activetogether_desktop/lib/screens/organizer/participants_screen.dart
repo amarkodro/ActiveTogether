@@ -425,7 +425,9 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
 
   Widget _buildRow(ReservationItem r) {
     final canConfirm = r.status == 'Pending';
-    final canCancel = r.status == 'Pending' || r.status == 'Confirmed';
+    final canCancel =
+        (r.status == 'Pending' || r.status == 'Confirmed') &&
+        r.activityDateTime.isAfter(DateTime.now());
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),

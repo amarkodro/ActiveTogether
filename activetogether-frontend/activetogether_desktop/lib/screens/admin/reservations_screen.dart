@@ -312,7 +312,9 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   Widget _buildRow(ReservationItem reservation) {
     final canConfirm = reservation.status == 'Pending';
     final canCancel =
-        reservation.status == 'Pending' || reservation.status == 'Confirmed';
+        (reservation.status == 'Pending' ||
+            reservation.status == 'Confirmed') &&
+        reservation.activityDateTime.isAfter(DateTime.now());
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),

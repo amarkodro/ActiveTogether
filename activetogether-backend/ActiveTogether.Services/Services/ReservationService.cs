@@ -13,6 +13,11 @@ namespace ActiveTogether.Services.Services
     {
         private const int MaxPageSize = 100;
 
+        // Jedinstveno mjesto koje definiše koliko prije termina se rezervacija još može
+        // otkazati (uz automatski refund). TimeSpan.Zero znači "dok aktivnost ne počne".
+        // UI samo prati ovu odluku (activityDateTime - CancellationCutoff).
+        private static readonly TimeSpan CancellationCutoff = TimeSpan.Zero;
+
         private readonly ActiveTogetherDbContext _context;
         private readonly IPaymentService _paymentService;
         private readonly INotificationService _notificationService;
@@ -203,6 +208,9 @@ namespace ActiveTogether.Services.Services
 
             if (!StatusTransitions.CanTransition(reservation.Status, ReservationStatus.Cancelled))
                 throw new BusinessException("Rezervacija je već otkazana ili završena.");
+
+            if (DateTime.UtcNow >= reservation.Activity!.DateTime - CancellationCutoff)
+                throw new BusinessException("Rezervacija se ne može otkazati nakon što je aktivnost počela.");
 
             if ((isOrganizer || isAdmin) && !isOwner && string.IsNullOrWhiteSpace(request.Reason))
                 throw new BusinessException("Razlog otkazivanja je obavezan kada rezervaciju otkazuje organizator ili administrator.");
