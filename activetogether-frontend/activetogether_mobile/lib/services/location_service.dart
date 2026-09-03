@@ -7,7 +7,7 @@ class LocationService {
   LocationService(this._apiClient);
 
   Future<List<LocationOption>> getAll() async {
-    final response = await _apiClient.dio.get('/api/Locations');
+    final response = await _apiClient.dio.get('/api/Locations/lookup');
     return (response.data as List)
         .map((e) => LocationOption.fromJson(e as Map<String, dynamic>))
         .toList();

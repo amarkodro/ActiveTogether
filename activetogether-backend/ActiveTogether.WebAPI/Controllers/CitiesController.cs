@@ -18,7 +18,16 @@ namespace ActiveTogether.WebAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] CitySearchObject search)
+        {
+            return Ok(await _service.GetPagedAsync(search));
+        }
+
+        /// <summary>
+        /// Kompletan (neparaginiran) spisak gradova, namijenjen za dropdown/lookup prikaze.
+        /// </summary>
+        [HttpGet("lookup")]
+        public async Task<IActionResult> GetLookup()
         {
             return Ok(await _service.GetAllAsync());
         }

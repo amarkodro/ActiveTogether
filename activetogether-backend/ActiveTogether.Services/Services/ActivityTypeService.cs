@@ -10,6 +10,8 @@ namespace ActiveTogether.Services.Services
 {
     public class ActivityTypeService : IActivityTypeService
     {
+        private const int MaxPageSize = 50;
+
         private readonly ActiveTogetherDbContext _context;
 
         public ActivityTypeService(ActiveTogetherDbContext context)
@@ -23,6 +25,33 @@ namespace ActiveTogether.Services.Services
                 .OrderBy(a => a.Name)
                 .Select(a => new ActivityTypeResponse { Id = a.Id, Name = a.Name })
                 .ToListAsync();
+        }
+
+        public async Task<PagedResult<ActivityTypeResponse>> GetPagedAsync(ReferenceSearchObject search)
+        {
+            var query = _context.ActivityTypes.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search.Name))
+                query = query.Where(a => a.Name.Contains(search.Name));
+
+            var totalCount = await query.CountAsync();
+            var pageSize = Math.Clamp(search.PageSize, 1, MaxPageSize);
+            var page = Math.Max(search.Page, 1);
+
+            var items = await query
+                .OrderBy(a => a.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new ActivityTypeResponse { Id = a.Id, Name = a.Name })
+                .ToListAsync();
+
+            return new PagedResult<ActivityTypeResponse>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<ActivityTypeResponse> GetByIdAsync(int id)

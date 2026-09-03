@@ -10,6 +10,8 @@ namespace ActiveTogether.Services.Services
 {
     public class LocationService : ILocationService
     {
+        private const int MaxPageSize = 50;
+
         private readonly ActiveTogetherDbContext _context;
 
         public LocationService(ActiveTogetherDbContext context)
@@ -25,6 +27,35 @@ namespace ActiveTogether.Services.Services
                 .ToListAsync();
 
             return locations.Select(MapToResponse).ToList();
+        }
+
+        public async Task<PagedResult<LocationResponse>> GetPagedAsync(LocationSearchObject search)
+        {
+            var query = _context.Locations.Include(l => l.City).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search.Name))
+                query = query.Where(l => l.Name.Contains(search.Name) || l.Address.Contains(search.Name));
+
+            if (search.CityId.HasValue)
+                query = query.Where(l => l.CityId == search.CityId.Value);
+
+            var totalCount = await query.CountAsync();
+            var pageSize = Math.Clamp(search.PageSize, 1, MaxPageSize);
+            var page = Math.Max(search.Page, 1);
+
+            var locations = await query
+                .OrderBy(l => l.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<LocationResponse>
+            {
+                Items = locations.Select(MapToResponse).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<LocationResponse> GetByIdAsync(int id)

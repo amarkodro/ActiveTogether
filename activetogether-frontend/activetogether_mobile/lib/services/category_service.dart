@@ -7,7 +7,7 @@ class CategoryService {
   CategoryService(this._apiClient);
 
   Future<List<CategoryOption>> getAll() async {
-    final response = await _apiClient.dio.get('/api/Categories');
+    final response = await _apiClient.dio.get('/api/Categories/lookup');
     return (response.data as List)
         .map((e) => CategoryOption.fromJson(e as Map<String, dynamic>))
         .toList();

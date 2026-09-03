@@ -8,21 +8,21 @@ class ReferenceDataService {
   ReferenceDataService(this._apiClient);
 
   Future<List<ReferenceOption>> getCategories() async {
-    final response = await _apiClient.dio.get('/api/Categories');
+    final response = await _apiClient.dio.get('/api/Categories/lookup');
     return (response.data as List)
         .map((e) => ReferenceOption.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   Future<List<ReferenceOption>> getActivityTypes() async {
-    final response = await _apiClient.dio.get('/api/ActivityTypes');
+    final response = await _apiClient.dio.get('/api/ActivityTypes/lookup');
     return (response.data as List)
         .map((e) => ReferenceOption.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   Future<List<LocationOption>> getLocations() async {
-    final response = await _apiClient.dio.get('/api/Locations');
+    final response = await _apiClient.dio.get('/api/Locations/lookup');
     return (response.data as List)
         .map((e) => LocationOption.fromJson(e as Map<String, dynamic>))
         .toList();

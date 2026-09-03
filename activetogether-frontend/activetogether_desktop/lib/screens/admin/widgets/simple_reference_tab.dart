@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../models/paged_result.dart';
 import '../../../models/reference_option.dart';
 import '../../../services/api_client.dart';
 import '../../../services/simple_crud_service.dart';
 import '../../../theme/app_colors.dart';
+import '../../../widgets/pagination_bar.dart';
 
 class SimpleReferenceTab extends StatefulWidget {
   final String endpoint;
@@ -23,7 +25,10 @@ class SimpleReferenceTab extends StatefulWidget {
 }
 
 class _SimpleReferenceTabState extends State<SimpleReferenceTab> {
-  late Future<List<ReferenceOption>> _future;
+  late Future<PagedResult<ReferenceOption>> _future;
+  final _searchController = TextEditingController();
+  int _page = 1;
+  static const _pageSize = 20;
 
   @override
   void initState() {
@@ -31,12 +36,38 @@ class _SimpleReferenceTabState extends State<SimpleReferenceTab> {
     _future = _load();
   }
 
-  Future<List<ReferenceOption>> _load() {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<PagedResult<ReferenceOption>> _load() {
     final apiClient = context.read<ApiClient>();
-    return SimpleCrudService(apiClient, widget.endpoint).getAll();
+    return SimpleCrudService(apiClient, widget.endpoint).getPaged(
+      name: _searchController.text.trim().isEmpty
+          ? null
+          : _searchController.text.trim(),
+      page: _page,
+      pageSize: _pageSize,
+    );
   }
 
   void _refresh() => setState(() => _future = _load());
+
+  void _onSearchChanged(String _) {
+    setState(() {
+      _page = 1;
+      _future = _load();
+    });
+  }
+
+  void _onPageChanged(int page) {
+    setState(() {
+      _page = page;
+      _future = _load();
+    });
+  }
 
   String _errorText(Object e) {
     if (e is DioException) {
@@ -172,17 +203,41 @@ class _SimpleReferenceTabState extends State<SimpleReferenceTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: () => _showEditor(),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text('Dodaj — ${widget.singularLabel}'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Pretraga po nazivu...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    suffixIcon: _searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                          ),
+                  ),
+                  onSubmitted: _onSearchChanged,
+                  onChanged: (v) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: () => _showEditor(),
+                icon: const Icon(Icons.add, size: 18),
+                label: Text('Dodaj — ${widget.singularLabel}'),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: FutureBuilder<List<ReferenceOption>>(
+            child: FutureBuilder<PagedResult<ReferenceOption>>(
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -204,7 +259,8 @@ class _SimpleReferenceTabState extends State<SimpleReferenceTab> {
                   );
                 }
 
-                final items = snapshot.data!;
+                final result = snapshot.data!;
+                final items = result.items;
                 if (items.isEmpty) {
                   return const Center(
                     child: Text(
@@ -214,32 +270,48 @@ class _SimpleReferenceTabState extends State<SimpleReferenceTab> {
                   );
                 }
 
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return ListTile(
-                      title: Text(item.name),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined, size: 20),
-                            onPressed: () => _showEditor(existing: item),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              size: 20,
-                              color: AppColors.danger,
+                return Column(
+                  children: [
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: items.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          return ListTile(
+                            title: Text(item.name),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 20,
+                                  ),
+                                  onPressed: () =>
+                                      _showEditor(existing: item),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 20,
+                                    color: AppColors.danger,
+                                  ),
+                                  onPressed: () => _delete(item),
+                                ),
+                              ],
                             ),
-                            onPressed: () => _delete(item),
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    PaginationBar(
+                      page: result.page,
+                      totalCount: result.totalCount,
+                      pageSize: result.pageSize,
+                      onPageChanged: _onPageChanged,
+                    ),
+                  ],
                 );
               },
             ),

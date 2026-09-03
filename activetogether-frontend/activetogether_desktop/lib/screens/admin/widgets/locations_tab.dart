@@ -5,10 +5,12 @@ import 'package:latlong2/latlong.dart' as latlong;
 import 'package:provider/provider.dart';
 import '../../../models/city_option.dart';
 import '../../../models/location_option.dart';
+import '../../../models/paged_result.dart';
 import '../../../services/api_client.dart';
 import '../../../services/city_service.dart';
 import '../../../services/location_service.dart';
 import '../../../theme/app_colors.dart';
+import '../../../widgets/pagination_bar.dart';
 
 class LocationsTab extends StatefulWidget {
   const LocationsTab({super.key});
@@ -18,7 +20,10 @@ class LocationsTab extends StatefulWidget {
 }
 
 class _LocationsTabState extends State<LocationsTab> {
-  late Future<List<LocationOption>> _future;
+  late Future<PagedResult<LocationOption>> _future;
+  final _searchController = TextEditingController();
+  int _page = 1;
+  static const _pageSize = 20;
 
   @override
   void initState() {
@@ -26,12 +31,38 @@ class _LocationsTabState extends State<LocationsTab> {
     _future = _load();
   }
 
-  Future<List<LocationOption>> _load() {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<PagedResult<LocationOption>> _load() {
     final apiClient = context.read<ApiClient>();
-    return LocationService(apiClient).getAll();
+    return LocationService(apiClient).getPaged(
+      name: _searchController.text.trim().isEmpty
+          ? null
+          : _searchController.text.trim(),
+      page: _page,
+      pageSize: _pageSize,
+    );
   }
 
   void _refresh() => setState(() => _future = _load());
+
+  void _onSearchChanged(String _) {
+    setState(() {
+      _page = 1;
+      _future = _load();
+    });
+  }
+
+  void _onPageChanged(int page) {
+    setState(() {
+      _page = page;
+      _future = _load();
+    });
+  }
 
   String _errorText(Object e) {
     if (e is DioException) {
@@ -312,17 +343,41 @@ class _LocationsTabState extends State<LocationsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: () => _showEditor(),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Dodaj lokaciju'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Pretraga po nazivu ili adresi...',
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    suffixIcon: _searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                          ),
+                  ),
+                  onSubmitted: _onSearchChanged,
+                  onChanged: (v) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: () => _showEditor(),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Dodaj lokaciju'),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: FutureBuilder<List<LocationOption>>(
+            child: FutureBuilder<PagedResult<LocationOption>>(
               future: _future,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -344,7 +399,8 @@ class _LocationsTabState extends State<LocationsTab> {
                   );
                 }
 
-                final items = snapshot.data!;
+                final result = snapshot.data!;
+                final items = result.items;
                 if (items.isEmpty) {
                   return const Center(
                     child: Text(
@@ -354,36 +410,52 @@ class _LocationsTabState extends State<LocationsTab> {
                   );
                 }
 
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return ListTile(
-                      title: Text(item.name),
-                      subtitle: Text(
-                        '${item.address}, ${item.cityName}',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined, size: 20),
-                            onPressed: () => _showEditor(existing: item),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              size: 20,
-                              color: AppColors.danger,
+                return Column(
+                  children: [
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: items.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final item = items[index];
+                          return ListTile(
+                            title: Text(item.name),
+                            subtitle: Text(
+                              '${item.address}, ${item.cityName}',
+                              style: const TextStyle(fontSize: 12),
                             ),
-                            onPressed: () => _delete(item),
-                          ),
-                        ],
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 20,
+                                  ),
+                                  onPressed: () =>
+                                      _showEditor(existing: item),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    size: 20,
+                                    color: AppColors.danger,
+                                  ),
+                                  onPressed: () => _delete(item),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                    PaginationBar(
+                      page: result.page,
+                      totalCount: result.totalCount,
+                      pageSize: result.pageSize,
+                      onPageChanged: _onPageChanged,
+                    ),
+                  ],
                 );
               },
             ),

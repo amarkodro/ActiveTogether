@@ -1,4 +1,4 @@
-﻿using ActiveTogether.Model.Requests;
+using ActiveTogether.Model.Requests;
 using ActiveTogether.Model.Responses;
 
 namespace ActiveTogether.Services.Interfaces
@@ -6,6 +6,7 @@ namespace ActiveTogether.Services.Interfaces
     public interface IActivityTypeService
     {
         Task<List<ActivityTypeResponse>> GetAllAsync();
+        Task<PagedResult<ActivityTypeResponse>> GetPagedAsync(ReferenceSearchObject search);
         Task<ActivityTypeResponse> GetByIdAsync(int id);
         Task<ActivityTypeResponse> CreateAsync(ActivityTypeUpsertRequest request);
         Task<ActivityTypeResponse> UpdateAsync(int id, ActivityTypeUpsertRequest request);

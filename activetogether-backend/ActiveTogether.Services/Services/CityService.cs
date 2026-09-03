@@ -10,6 +10,8 @@ namespace ActiveTogether.Services.Services
 {
     public class CityService : ICityService
     {
+        private const int MaxPageSize = 50;
+
         private readonly ActiveTogetherDbContext _context;
 
         public CityService(ActiveTogetherDbContext context)
@@ -25,6 +27,35 @@ namespace ActiveTogether.Services.Services
                 .ToListAsync();
 
             return cities.Select(MapToResponse).ToList();
+        }
+
+        public async Task<PagedResult<CityResponse>> GetPagedAsync(CitySearchObject search)
+        {
+            var query = _context.Cities.Include(c => c.Country).AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search.Name))
+                query = query.Where(c => c.Name.Contains(search.Name));
+
+            if (search.CountryId.HasValue)
+                query = query.Where(c => c.CountryId == search.CountryId.Value);
+
+            var totalCount = await query.CountAsync();
+            var pageSize = Math.Clamp(search.PageSize, 1, MaxPageSize);
+            var page = Math.Max(search.Page, 1);
+
+            var cities = await query
+                .OrderBy(c => c.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<CityResponse>
+            {
+                Items = cities.Select(MapToResponse).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<CityResponse> GetByIdAsync(int id)
