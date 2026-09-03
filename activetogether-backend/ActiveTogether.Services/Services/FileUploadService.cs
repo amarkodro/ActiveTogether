@@ -14,6 +14,14 @@ namespace ActiveTogether.Services.Services
             ".jpg", ".jpeg", ".png", ".webp"
         };
 
+        private static readonly Dictionary<string, string[]> AllowedContentTypesByExtension = new()
+        {
+            [".jpg"] = new[] { "image/jpeg" },
+            [".jpeg"] = new[] { "image/jpeg" },
+            [".png"] = new[] { "image/png" },
+            [".webp"] = new[] { "image/webp" }
+        };
+
         private readonly IWebHostEnvironment _env;
 
         public FileUploadService(IWebHostEnvironment env)
@@ -32,6 +40,11 @@ namespace ActiveTogether.Services.Services
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!AllowedExtensions.Contains(extension))
                 throw new BusinessException("Dozvoljeni formati slike su: JPG, PNG, WEBP.");
+
+            var contentType = file.ContentType?.Trim().ToLowerInvariant() ?? string.Empty;
+            if (!AllowedContentTypesByExtension.TryGetValue(extension, out var allowedContentTypes) ||
+                !allowedContentTypes.Contains(contentType))
+                throw new BusinessException("Deklarisani tip fajla (Content-Type) nije dozvoljen za sliku.");
 
             byte[] bytes;
             using (var memoryStream = new MemoryStream())
