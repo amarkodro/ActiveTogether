@@ -9,6 +9,7 @@ import '../../services/api_client.dart';
 import '../../theme/app_colors.dart';
 import '../notifications_screen.dart';
 import 'activity_form_screen.dart';
+import 'participants_screen.dart';
 
 class MyActivitiesScreen extends StatefulWidget {
   const MyActivitiesScreen({super.key});
@@ -42,6 +43,16 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     await _activitiesFuture;
   }
 
+  String _errorText(Object e, String fallback) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        return data['message'].toString();
+      }
+    }
+    return fallback;
+  }
+
   Future<void> _completeActivity(Activity activity) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -72,22 +83,108 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
       if (!mounted) return;
       await _refresh();
       if (!mounted) return;
-      _tabController.animateTo(1);
+      _tabController.animateTo(2);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Aktivnost je označena kao završena.')),
       );
     } catch (e) {
-      String message = 'Označavanje kao završeno nije uspjelo.';
-      if (e is DioException) {
-        final data = e.response?.data;
-        if (data is Map && data['message'] != null) {
-          message = data['message'].toString();
-        }
-      }
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _errorText(e, 'Označavanje kao završeno nije uspjelo.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _cancelActivity(Activity activity) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Otkazivanje aktivnosti'),
+        content: Text(
+          'Da li sigurno želiš otkazati aktivnost "${activity.name}"? '
+          'Svi prijavljeni učesnici će biti obaviješteni, a plaćene rezervacije će biti refundirane.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Odustani'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Da, otkaži aktivnost'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final apiClient = context.read<ApiClient>();
+      await ActivityService(apiClient).cancel(activity.id);
+      if (!mounted) return;
+      await _refresh();
+      if (!mounted) return;
+      _tabController.animateTo(2);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aktivnost je otkazana.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_errorText(e, 'Otkazivanje nije uspjelo.'))),
+      );
+    }
+  }
+
+  void _openParticipants(Activity activity) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ParticipantsScreen(
+          activityId: activity.id,
+          activityName: activity.name,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editActivity(Activity activity) async {
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ActivityFormScreen(activity: activity),
+      ),
+    );
+    if (saved == true) _refresh();
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'Active':
+        return 'Aktivno';
+      case 'Completed':
+        return 'Završeno';
+      case 'Cancelled':
+        return 'Otkazano';
+      default:
+        return status;
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Active':
+        return const Color(0xFF1E3A8A);
+      case 'Completed':
+        return const Color(0xFF16A34A);
+      case 'Cancelled':
+        return AppColors.danger;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -112,8 +209,8 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
           indicatorColor: const Color(0xFF1E3A8A),
           tabs: const [
             Tab(text: 'Aktivne'),
+            Tab(text: 'Na čekanju'),
             Tab(text: 'Završene'),
-            Tab(text: 'Otkazane'),
           ],
         ),
         actions: [
@@ -156,20 +253,32 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
             }
 
             final all = snapshot.data ?? [];
-            final active = all.where((a) => a.status == 'Active').toList();
-            final completed = all
-                .where((a) => a.status == 'Completed')
+            final now = DateTime.now();
+
+            // "Aktivne" = tekuće/nadolazeće aktivnosti koje još nisu održane.
+            final active = all
+                .where((a) => a.status == 'Active' && a.dateTime.isAfter(now))
                 .toList();
-            final cancelled = all
-                .where((a) => a.status == 'Cancelled')
+            // "Na čekanju" = termin je prošao, a organizator još nije označio
+            // aktivnost kao završenu (čeka njegovu akciju).
+            final pending = all
+                .where(
+                  (a) => a.status == 'Active' && !a.dateTime.isAfter(now),
+                )
+                .toList();
+            // "Završene" = konačno stanje aktivnosti (završena ili otkazana).
+            final finished = all
+                .where(
+                  (a) => a.status == 'Completed' || a.status == 'Cancelled',
+                )
                 .toList();
 
             return TabBarView(
               controller: _tabController,
               children: [
                 _buildList(active),
-                _buildList(completed),
-                _buildList(cancelled),
+                _buildList(pending),
+                _buildList(finished),
               ],
             );
           },
@@ -196,40 +305,103 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
           final canComplete =
               activity.status == 'Active' &&
               activity.dateTime.isBefore(DateTime.now());
+          final canEditOrCancel = activity.status == 'Active';
 
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              onTap: () async {
-                final saved = await Navigator.of(context).push<bool>(
-                  MaterialPageRoute(
-                    builder: (_) => ActivityFormScreen(activity: activity),
-                  ),
-                );
-                if (saved == true) _refresh();
-              },
-              leading: Text(
-                AppColors.categoryEmoji(activity.categoryName),
-                style: const TextStyle(fontSize: 24),
-              ),
-              title: Text(
-                activity.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                '$dateLabel • ${activity.locationName}\n${activity.reservedCount}/${activity.capacity} prijavljenih',
-              ),
-              isThreeLine: true,
-              trailing: canComplete
-                  ? IconButton(
-                      icon: const Icon(
-                        Icons.check_circle_outline,
-                        color: Color(0xFF16A34A),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 4, 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppColors.categoryEmoji(activity.categoryName),
+                        style: const TextStyle(fontSize: 24),
                       ),
-                      tooltip: 'Označi kao završeno',
-                      onPressed: () => _completeActivity(activity),
-                    )
-                  : const Icon(Icons.chevron_right),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activity.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$dateLabel • ${activity.locationName}\n'
+                              '${activity.reservedCount}/${activity.capacity} prijavljenih',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _statusColor(
+                            activity.status,
+                          ).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _statusLabel(activity.status),
+                          style: TextStyle(
+                            color: _statusColor(activity.status),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (canComplete)
+                        IconButton(
+                          icon: const Icon(
+                            Icons.check_circle_outline,
+                            color: Color(0xFF16A34A),
+                          ),
+                          tooltip: 'Označi kao završeno',
+                          onPressed: () => _completeActivity(activity),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.people_outline),
+                        tooltip: 'Učesnici',
+                        onPressed: () => _openParticipants(activity),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: 'Uredi',
+                        onPressed: canEditOrCancel
+                            ? () => _editActivity(activity)
+                            : null,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.cancel_outlined),
+                        color: canEditOrCancel ? AppColors.danger : null,
+                        tooltip: 'Otkaži',
+                        onPressed: canEditOrCancel
+                            ? () => _cancelActivity(activity)
+                            : null,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           );
         },
