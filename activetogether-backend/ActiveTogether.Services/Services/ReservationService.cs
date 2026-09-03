@@ -141,6 +141,7 @@ namespace ActiveTogether.Services.Services
         {
             var reservation = await _context.Reservations
                 .Include(r => r.Activity)
+                .Include(r => r.Payment)
                 .FirstOrDefaultAsync(r => r.Id == id)
                 ?? throw new NotFoundException($"Rezervacija sa Id {id} ne postoji.");
 
@@ -148,6 +149,9 @@ namespace ActiveTogether.Services.Services
 
             if (!StatusTransitions.CanTransition(reservation.Status, ReservationStatus.Confirmed))
                 throw new BusinessException("Samo rezervacije na čekanju mogu biti potvrđene.");
+
+            if (!reservation.Activity!.IsFree && reservation.Payment?.Status != PaymentStatus.Completed)
+                throw new BusinessException("Rezervacija se ne može potvrditi dok plaćanje nije uspješno završeno.");
 
             reservation.Status = ReservationStatus.Confirmed;
             reservation.ConfirmedAt = DateTime.UtcNow;

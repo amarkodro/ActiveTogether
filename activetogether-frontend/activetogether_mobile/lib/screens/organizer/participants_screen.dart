@@ -206,6 +206,9 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
                               final dateLabel = DateFormat(
                                 'dd.MM.yyyy.',
                               ).format(r.createdAt);
+                              final paymentNotCompleted =
+                                  r.payment != null &&
+                                  r.payment!.status != 'Completed';
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 10),
@@ -245,11 +248,18 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             IconButton(
-                                              icon: const Icon(
+                                              icon: Icon(
                                                 Icons.check_circle,
-                                                color: Colors.green,
+                                                color: paymentNotCompleted
+                                                    ? Colors.grey
+                                                    : Colors.green,
                                               ),
-                                              onPressed: () => _confirm(r),
+                                              tooltip: paymentNotCompleted
+                                                  ? 'Ne može se potvrditi dok uplata nije završena'
+                                                  : null,
+                                              onPressed: paymentNotCompleted
+                                                  ? null
+                                                  : () => _confirm(r),
                                             ),
                                             IconButton(
                                               icon: const Icon(

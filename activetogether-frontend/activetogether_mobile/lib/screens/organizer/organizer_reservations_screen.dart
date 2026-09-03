@@ -150,17 +150,34 @@ class _OrganizerReservationsScreenState
                           ),
                           if (r.status == 'Pending') ...[
                             const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () => _confirm(r),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
+                            if (r.payment != null &&
+                                r.payment!.status != 'Completed') ...[
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: null,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey.shade300,
+                                    foregroundColor: Colors.grey.shade700,
+                                  ),
+                                  child: const Text(
+                                    'Čeka se uplata',
+                                  ),
                                 ),
-                                child: const Text('Potvrdi'),
                               ),
-                            ),
+                            ] else ...[
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () => _confirm(r),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('Potvrdi'),
+                                ),
+                              ),
+                            ],
                           ],
                         ],
                       ),

@@ -424,7 +424,9 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
   }
 
   Widget _buildRow(ReservationItem r) {
-    final canConfirm = r.status == 'Pending';
+    final paymentNotCompleted =
+        r.payment != null && r.payment!.status != 'Completed';
+    final canConfirm = r.status == 'Pending' && !paymentNotCompleted;
     final canCancel =
         (r.status == 'Pending' || r.status == 'Confirmed') &&
         r.activityDateTime.isAfter(DateTime.now());
@@ -503,7 +505,9 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
           IconButton(
             icon: const Icon(Icons.check_circle_outline, size: 20),
             color: canConfirm ? AppColors.success : AppColors.textSecondary,
-            tooltip: 'Potvrdi',
+            tooltip: paymentNotCompleted
+                ? 'Ne može se potvrditi dok uplata nije završena'
+                : 'Potvrdi',
             onPressed: canConfirm ? () => _confirm(r) : null,
           ),
           IconButton(

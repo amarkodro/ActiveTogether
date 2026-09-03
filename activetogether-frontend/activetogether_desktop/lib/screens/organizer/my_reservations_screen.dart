@@ -356,7 +356,10 @@ class _MyReservationsScreenState extends State<MyReservationsScreen> {
   }
 
   Widget _buildRow(ReservationItem reservation) {
-    final canConfirm = reservation.status == 'Pending';
+    final paymentNotCompleted =
+        reservation.payment != null &&
+        reservation.payment!.status != 'Completed';
+    final canConfirm = reservation.status == 'Pending' && !paymentNotCompleted;
     final canCancel =
         (reservation.status == 'Pending' ||
             reservation.status == 'Confirmed') &&
@@ -444,7 +447,9 @@ class _MyReservationsScreenState extends State<MyReservationsScreen> {
                   color: canConfirm
                       ? AppColors.success
                       : AppColors.textSecondary,
-                  tooltip: 'Potvrdi',
+                  tooltip: paymentNotCompleted
+                      ? 'Ne može se potvrditi dok uplata nije završena'
+                      : 'Potvrdi',
                   onPressed: canConfirm ? () => _confirm(reservation) : null,
                 ),
                 IconButton(
