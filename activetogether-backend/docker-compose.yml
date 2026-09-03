@@ -20,6 +20,9 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: activetogether-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -42,6 +45,8 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=220221;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;
       - RabbitMq__HostName=rabbitmq
+      - RabbitMq__UserName=${RABBITMQ_USER}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD}
     ports:
       - "5027:8080"
     volumes:
@@ -63,6 +68,8 @@ services:
       - .env
     environment:
       - RabbitMq__HostName=rabbitmq
+      - RabbitMq__UserName=${RABBITMQ_USER}
+      - RabbitMq__Password=${RABBITMQ_PASSWORD}
     depends_on:
       rabbitmq:
         condition: service_healthy
