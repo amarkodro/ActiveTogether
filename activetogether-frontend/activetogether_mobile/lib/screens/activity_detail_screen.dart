@@ -5,9 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../config/api_config.dart';
 import '../models/activity.dart';
+import '../models/rating.dart';
 import '../services/activity_service.dart';
 import '../services/api_client.dart';
 import '../services/favorite_service.dart';
+import '../services/rating_service.dart';
 import '../services/reservation_service.dart';
 import '../theme/app_colors.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -28,6 +30,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
   String? _myReservationStatus;
   bool _isFavorite = false;
   bool _favoriteBusy = false;
+  List<Rating> _ratings = [];
 
   @override
   void initState() {
@@ -55,6 +58,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       ).getStatus(widget.activityId);
     } catch (_) {
       _isFavorite = false;
+    }
+    try {
+      _ratings = await RatingService(apiClient).getForActivity(activity.id);
+    } catch (_) {
+      _ratings = [];
     }
     return activity;
   }
@@ -378,6 +386,18 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                           ),
                           const SizedBox(height: 16),
                         ],
+                        if (_ratings.isNotEmpty) ...[
+                          const Text(
+                            'Komentari',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ..._ratings.map(_buildRatingItem),
+                          const SizedBox(height: 8),
+                        ],
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: LinearProgressIndicator(
@@ -451,6 +471,55 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildRatingItem(Rating rating) {
+    final dateLabel = DateFormat('dd.MM.yyyy.').format(rating.createdAt);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  rating.userName.isEmpty ? 'Korisnik' : rating.userName,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Row(
+                children: List.generate(
+                  5,
+                  (index) => Icon(
+                    index < rating.score ? Icons.star : Icons.star_border,
+                    color: Colors.amber,
+                    size: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            dateLabel,
+            style: const TextStyle(color: Colors.grey, fontSize: 11),
+          ),
+          if (rating.comment != null && rating.comment!.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              rating.comment!,
+              style: const TextStyle(color: Colors.black87),
+            ),
+          ],
+        ],
       ),
     );
   }

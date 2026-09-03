@@ -6,5 +6,6 @@ namespace ActiveTogether.Services.Interfaces
     public interface IRatingService
     {
         Task<RatingResponse> CreateAsync(RatingCreateRequest request, int userId);
+        Task<List<RatingResponse>> GetForActivityAsync(int activityId);
     }
 }

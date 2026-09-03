@@ -17,5 +17,10 @@
         public DateTime? CancelledAt { get; set; }
         public PaymentInfoResponse? Payment { get; set; }
 
+        /// <summary>
+        /// True ako je korisnik već ocijenio ovu (završenu) rezervaciju, kako bi UI
+        /// mogao sakriti/onemogućiti akciju "Ocijeni" bez pogađanja/greške sa backend-a.
+        /// </summary>
+        public bool HasRating { get; set; }
     }
 }

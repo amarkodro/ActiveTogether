@@ -46,15 +46,41 @@ namespace ActiveTogether.Services.Services
             _context.Ratings.Add(rating);
             await _context.SaveChangesAsync();
 
+            var user = await _context.Users.FindAsync(userId);
+
             return new RatingResponse
             {
                 Id = rating.Id,
                 ReservationId = rating.ReservationId,
                 ActivityId = rating.ActivityId,
+                UserId = rating.UserId,
+                UserName = user is null ? string.Empty : $"{user.FirstName} {user.LastName}",
+                UserProfileImageUrl = user?.ProfileImageUrl,
                 Score = rating.Score,
                 Comment = rating.Comment,
                 CreatedAt = rating.CreatedAt
             };
+        }
+
+        public async Task<List<RatingResponse>> GetForActivityAsync(int activityId)
+        {
+            return await _context.Ratings
+                .Include(r => r.User)
+                .Where(r => r.ActivityId == activityId)
+                .OrderByDescending(r => r.CreatedAt)
+                .Select(r => new RatingResponse
+                {
+                    Id = r.Id,
+                    ReservationId = r.ReservationId,
+                    ActivityId = r.ActivityId,
+                    UserId = r.UserId,
+                    UserName = r.User == null ? string.Empty : r.User.FirstName + " " + r.User.LastName,
+                    UserProfileImageUrl = r.User != null ? r.User.ProfileImageUrl : null,
+                    Score = r.Score,
+                    Comment = r.Comment,
+                    CreatedAt = r.CreatedAt
+                })
+                .ToListAsync();
         }
     }
 }

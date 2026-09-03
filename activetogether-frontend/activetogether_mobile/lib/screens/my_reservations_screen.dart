@@ -171,6 +171,7 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Hvala na ocjeni!')));
+      _refresh();
     } catch (e) {
       String message = 'Slanje ocjene nije uspjelo.';
       if (e is DioException) {
@@ -369,13 +370,23 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
                       if (reservation.status == 'Completed') ...[
                         const SizedBox(width: 10),
                         Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => _rateActivity(reservation),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.amber.shade800,
-                            ),
-                            child: const Text('Ocijeni'),
-                          ),
+                          child: reservation.hasRating
+                              ? OutlinedButton.icon(
+                                  onPressed: null,
+                                  icon: const Icon(Icons.star, size: 16),
+                                  label: const Text('Ocijenjeno'),
+                                  style: OutlinedButton.styleFrom(
+                                    disabledForegroundColor:
+                                        Colors.amber.shade800,
+                                  ),
+                                )
+                              : OutlinedButton(
+                                  onPressed: () => _rateActivity(reservation),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.amber.shade800,
+                                  ),
+                                  child: const Text('Ocijeni'),
+                                ),
                         ),
                       ],
                     ],

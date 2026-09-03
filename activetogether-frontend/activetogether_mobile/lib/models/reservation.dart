@@ -46,6 +46,7 @@ class Reservation {
   final String? cancellationReason;
   final DateTime? cancelledAt;
   final ReservationPayment? payment;
+  final bool hasRating;
 
   Reservation({
     required this.id,
@@ -62,6 +63,7 @@ class Reservation {
     this.cancellationReason,
     this.cancelledAt,
     this.payment,
+    this.hasRating = false,
   });
 
   factory Reservation.fromJson(Map<String, dynamic> json) {
@@ -90,6 +92,7 @@ class Reservation {
       payment: json['payment'] != null
           ? ReservationPayment.fromJson(json['payment'] as Map<String, dynamic>)
           : null,
+      hasRating: json['hasRating'] as bool? ?? false,
     );
   }
 }

@@ -35,6 +35,7 @@ namespace ActiveTogether.Services.Services
                 .Include(r => r.Activity)
                 .Include(r => r.User)
                 .Include(r => r.Payment)
+                .Include(r => r.Rating)
                 .Where(r => r.UserId == userId);
 
             query = ApplyCommonFilters(query, search);
@@ -46,6 +47,7 @@ namespace ActiveTogether.Services.Services
                 .Include(r => r.Activity)
                 .Include(r => r.User)
                 .Include(r => r.Payment)
+                .Include(r => r.Rating)
                 .Where(r => r.Activity!.OrganizerId == organizerId);
 
             query = ApplyCommonFilters(query, search);
@@ -66,6 +68,7 @@ namespace ActiveTogether.Services.Services
                 .Include(r => r.Activity)
                 .Include(r => r.User)
                 .Include(r => r.Payment)
+                .Include(r => r.Rating)
                 .Where(r => r.ActivityId == activityId);
 
             query = ApplyCommonFilters(query, search);
@@ -79,6 +82,7 @@ namespace ActiveTogether.Services.Services
                 .Include(r => r.Activity)
                 .Include(r => r.User)
                 .Include(r => r.Payment)
+                .Include(r => r.Rating)
                 .AsQueryable();
 
             query = ApplyCommonFilters(query, search);
@@ -306,6 +310,7 @@ namespace ActiveTogether.Services.Services
                 .Include(r => r.Activity)
                 .Include(r => r.User)
                 .Include(r => r.Payment)
+                .Include(r => r.Rating)
                 .FirstAsync(r => r.Id == id);
 
             return MapToResponse(reservation);
@@ -328,6 +333,7 @@ namespace ActiveTogether.Services.Services
                 CompletedAt = reservation.CompletedAt,
                 CancellationReason = reservation.CancellationReason,
                 CancelledAt = reservation.CancelledAt,
+                HasRating = reservation.Rating != null,
                 Payment = reservation.Payment is null ? null : new PaymentInfoResponse
                 {
                     Id = reservation.Payment.Id,
