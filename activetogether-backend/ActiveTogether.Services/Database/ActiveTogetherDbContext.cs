@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ActiveTogether.Services.Database.Entities;
 
 namespace ActiveTogether.Services.Database
@@ -190,6 +191,42 @@ namespace ActiveTogether.Services.Database
             modelBuilder.Entity<Favorite>()
                 .HasIndex(f => new { f.UserId, f.ActivityId })
                 .IsUnique();
+
+            // SQL Server (datetime2) ne čuva DateTimeKind, pa EF Core pri čitanju uvijek
+            // vraća Kind=Unspecified. Bez ove konverzije bi System.Text.Json pri serijalizaciji
+            // izostavio "Z" sufiks, a Flutter strana bi UTC vrijednost pogrešno protumačila kao
+            // lokalno vrijeme. Cijela aplikacija dosljedno koristi DateTime.UtcNow, pa se svako
+            // Unspecified vrijeme pri čitanju označava kao UTC, a Local se eksplicitno konvertuje.
+            var utcConverter = new ValueConverter<DateTime, DateTime>(
+                v => v.Kind switch
+                {
+                    DateTimeKind.Utc => v,
+                    DateTimeKind.Local => v.ToUniversalTime(),
+                    _ => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+                },
+                v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+            var nullableUtcConverter = new ValueConverter<DateTime?, DateTime?>(
+                v => v.HasValue
+                    ? v.Value.Kind switch
+                    {
+                        DateTimeKind.Utc => v.Value,
+                        DateTimeKind.Local => v.Value.ToUniversalTime(),
+                        _ => DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)
+                    }
+                    : v,
+                v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (property.ClrType == typeof(DateTime))
+                        property.SetValueConverter(utcConverter);
+                    else if (property.ClrType == typeof(DateTime?))
+                        property.SetValueConverter(nullableUtcConverter);
+                }
+            }
         }
     }
 }

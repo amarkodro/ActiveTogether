@@ -14,8 +14,8 @@ class ReportService {
     final response = await _apiClient.dio.get(
       '/api/Reports/activity-popularity',
       queryParameters: {
-        if (dateFrom != null) 'dateFrom': dateFrom.toIso8601String(),
-        if (dateTo != null) 'dateTo': dateTo.toIso8601String(),
+        if (dateFrom != null) 'dateFrom': dateFrom.toUtc().toIso8601String(),
+        if (dateTo != null) 'dateTo': dateTo.toUtc().toIso8601String(),
       },
       options: Options(responseType: ResponseType.bytes),
     );
@@ -29,8 +29,8 @@ class ReportService {
     final response = await _apiClient.dio.get(
       '/api/Reports/user-activity',
       queryParameters: {
-        if (dateFrom != null) 'dateFrom': dateFrom.toIso8601String(),
-        if (dateTo != null) 'dateTo': dateTo.toIso8601String(),
+        if (dateFrom != null) 'dateFrom': dateFrom.toUtc().toIso8601String(),
+        if (dateTo != null) 'dateTo': dateTo.toUtc().toIso8601String(),
       },
       options: Options(responseType: ResponseType.bytes),
     );

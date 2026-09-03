@@ -37,9 +37,9 @@ class OrganizerRequestItem {
       userProfileImageUrl: json['userProfileImageUrl'] as String?,
       status: json['status'] as String,
       rejectionReason: json['rejectionReason'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       decidedAt: json['decidedAt'] != null
-          ? DateTime.parse(json['decidedAt'] as String)
+          ? DateTime.parse(json['decidedAt'] as String).toLocal()
           : null,
     );
   }

@@ -19,10 +19,10 @@ class PaymentInfo {
       amount: (json['amount'] as num).toDouble(),
       status: json['status'] as String,
       paidAt: json['paidAt'] != null
-          ? DateTime.parse(json['paidAt'] as String)
+          ? DateTime.parse(json['paidAt'] as String).toLocal()
           : null,
       refundedAt: json['refundedAt'] != null
-          ? DateTime.parse(json['refundedAt'] as String)
+          ? DateTime.parse(json['refundedAt'] as String).toLocal()
           : null,
     );
   }

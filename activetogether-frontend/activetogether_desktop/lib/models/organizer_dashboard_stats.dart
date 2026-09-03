@@ -35,7 +35,7 @@ class RecentReservationEntry {
   factory RecentReservationEntry.fromJson(Map<String, dynamic> json) {
     return RecentReservationEntry(
       userName: json['userName'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       status: json['status'] as String,
     );
   }

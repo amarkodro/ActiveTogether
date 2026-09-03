@@ -38,21 +38,23 @@ class ReservationItem {
       id: json['id'] as int,
       activityId: json['activityId'] as int,
       activityName: json['activityName'] as String,
-      activityDateTime: DateTime.parse(json['activityDateTime'] as String),
+      activityDateTime: DateTime.parse(
+        json['activityDateTime'] as String,
+      ).toLocal(),
       userId: json['userId'] as int,
       userName: json['userName'] as String,
       userProfileImageUrl: json['userProfileImageUrl'] as String?,
       status: json['status'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
       confirmedAt: json['confirmedAt'] != null
-          ? DateTime.parse(json['confirmedAt'] as String)
+          ? DateTime.parse(json['confirmedAt'] as String).toLocal()
           : null,
       completedAt: json['completedAt'] != null
-          ? DateTime.parse(json['completedAt'] as String)
+          ? DateTime.parse(json['completedAt'] as String).toLocal()
           : null,
       cancellationReason: json['cancellationReason'] as String?,
       cancelledAt: json['cancelledAt'] != null
-          ? DateTime.parse(json['cancelledAt'] as String)
+          ? DateTime.parse(json['cancelledAt'] as String).toLocal()
           : null,
       payment: json['payment'] != null
           ? PaymentInfo.fromJson(json['payment'] as Map<String, dynamic>)

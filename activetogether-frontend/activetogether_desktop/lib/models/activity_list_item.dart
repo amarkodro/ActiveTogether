@@ -57,7 +57,7 @@ class ActivityListItem {
       locationAddress: json['locationAddress'] as String,
       organizerId: json['organizerId'] as int,
       organizerName: json['organizerName'] as String,
-      dateTime: DateTime.parse(json['dateTime'] as String),
+      dateTime: DateTime.parse(json['dateTime'] as String).toLocal(),
       capacity: json['capacity'] as int,
       reservedCount: json['reservedCount'] as int,
       isFree: json['isFree'] as bool,

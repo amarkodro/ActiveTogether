@@ -22,7 +22,7 @@ class AppNotification {
       title: json['title'] as String? ?? '',
       text: json['text'] as String? ?? '',
       isRead: json['isRead'] as bool,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
     );
   }
 }

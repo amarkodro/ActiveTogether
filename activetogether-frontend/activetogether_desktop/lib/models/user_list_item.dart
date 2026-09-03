@@ -42,7 +42,7 @@ class UserListItem {
       isActive: json['isActive'] as bool,
       cityName: json['cityName'] as String?,
       profileImageUrl: json['profileImageUrl'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
+      createdAt: DateTime.parse(json['createdAt'] as String).toLocal(),
     );
   }
 }
