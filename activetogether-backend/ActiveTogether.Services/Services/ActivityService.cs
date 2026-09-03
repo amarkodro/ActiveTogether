@@ -15,11 +15,13 @@ namespace ActiveTogether.Services.Services
 
         private readonly ActiveTogetherDbContext _context;
         private readonly INotificationService _notificationService;
+        private readonly IPaymentService _paymentService;
 
-        public ActivityService(ActiveTogetherDbContext context, INotificationService notificationService)
+        public ActivityService(ActiveTogetherDbContext context, INotificationService notificationService, IPaymentService paymentService)
         {
             _context = context;
             _notificationService = notificationService;
+            _paymentService = paymentService;
         }
 
         public async Task<PagedResult<ActivityResponse>> GetAllAsync(ActivitySearchObject search, int? organizerId, bool includeAllStatuses, int? currentUserId)
@@ -248,7 +250,31 @@ namespace ActiveTogether.Services.Services
             activity.Status = ActivityStatus.Cancelled;
             activity.UpdatedAt = DateTime.UtcNow;
 
+            var reservations = await _context.Reservations
+                .Where(r => r.ActivityId == id &&
+                    (r.Status == ReservationStatus.Pending || r.Status == ReservationStatus.Confirmed))
+                .ToListAsync();
+
+            foreach (var reservation in reservations)
+            {
+                reservation.Status = ReservationStatus.Cancelled;
+                reservation.CancellationReason = "Aktivnost je otkazana od strane organizatora.";
+                reservation.CancelledAt = DateTime.UtcNow;
+                reservation.CancelledByUserId = currentUserId;
+            }
+
             await _context.SaveChangesAsync();
+
+            foreach (var reservation in reservations)
+            {
+                await _paymentService.RefundPaymentAsync(reservation.Id);
+
+                await _notificationService.NotifyAsync(
+                    reservation.UserId,
+                    NotificationType.ReservationCancelled,
+                    "Aktivnost otkazana",
+                    $"Aktivnost \"{activity.Name}\" je otkazana od strane organizatora. Vaša rezervacija je otkazana, a eventualna uplata će biti refundirana.");
+            }
 
             return await GetByIdAsync(activity.Id);
         }
