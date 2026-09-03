@@ -60,27 +60,32 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
 
   Future<void> _reject(Reservation r) async {
     final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Otkaži rezervaciju'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Otkazujete rezervaciju korisnika ${r.userName}. Razlog je obavezan.',
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                labelText: 'Razlog otkazivanja',
-                border: OutlineInputBorder(),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Otkazujete rezervaciju korisnika ${r.userName}.'),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: reasonController,
+                decoration: const InputDecoration(
+                  labelText: 'Razlog otkazivanja',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? 'Razlog otkazivanja je obavezan.'
+                    : null,
               ),
-              maxLines: 2,
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -89,8 +94,9 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
           ),
           TextButton(
             onPressed: () {
-              if (reasonController.text.trim().isEmpty) return;
-              Navigator.of(context).pop(true);
+              if (formKey.currentState!.validate()) {
+                Navigator.of(context).pop(true);
+              }
             },
             child: const Text(
               'Otkaži rezervaciju',

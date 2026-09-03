@@ -200,7 +200,7 @@ namespace ActiveTogether.Services.Services
             if (user is null)
                 return; // ne otkrivamo da li email postoji u sistemu
 
-            var code = Random.Shared.Next(100000, 999999).ToString();
+            var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
 
             _context.PasswordResetTokens.Add(new PasswordResetToken
             {

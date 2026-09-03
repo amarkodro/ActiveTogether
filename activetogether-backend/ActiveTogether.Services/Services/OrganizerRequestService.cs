@@ -116,6 +116,9 @@ namespace ActiveTogether.Services.Services
             if (request.Status != OrganizerRequestStatus.Pending)
                 throw new BusinessException("Zahtjev je već obrađen.");
 
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new BusinessException("Razlog odbijanja je obavezan.");
+
             request.Status = OrganizerRequestStatus.Rejected;
             request.RejectionReason = reason;
             request.DecidedByUserId = adminId;
@@ -127,9 +130,7 @@ namespace ActiveTogether.Services.Services
                 request.UserId,
                 NotificationType.OrganizerRequestRejected,
                 "Zahtjev odbijen",
-                string.IsNullOrWhiteSpace(reason)
-                    ? "Vaš zahtjev za ulogu Organizatora je odbijen."
-                    : $"Vaš zahtjev za ulogu Organizatora je odbijen. Razlog: {reason}");
+                $"Vaš zahtjev za ulogu Organizatora je odbijen. Razlog: {reason}");
 
             return MapToResponse(request);
         }

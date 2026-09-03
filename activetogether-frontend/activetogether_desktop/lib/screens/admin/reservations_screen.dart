@@ -67,6 +67,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
 
   Future<void> _cancel(ReservationItem reservation) async {
     final reasonController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -74,25 +75,33 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         title: const Text('Otkazivanje rezervacije'),
         content: SizedBox(
           width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Otkazujete rezervaciju korisnika ${reservation.userName} za "${reservation.activityName}".',
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Razlog (opciono)',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              TextField(
-                controller: reasonController,
-                maxLines: 3,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
-              ),
-            ],
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Otkazujete rezervaciju korisnika ${reservation.userName} za "${reservation.activityName}".',
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Razlog otkazivanja',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Razlog otkazivanja je obavezan.'
+                      : null,
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -105,7 +114,11 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
               backgroundColor: AppColors.danger,
               foregroundColor: Colors.white,
             ),
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.of(context).pop(true);
+              }
+            },
             child: const Text('Otkaži rezervaciju'),
           ),
         ],
@@ -116,10 +129,9 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
 
     final apiClient = context.read<ApiClient>();
     try {
-      final reason = reasonController.text.trim();
       await ReservationService(
         apiClient,
-      ).cancel(reservation.id, reason.isEmpty ? null : reason);
+      ).cancel(reservation.id, reasonController.text.trim());
       _refresh();
     } catch (_) {
       if (mounted) {
