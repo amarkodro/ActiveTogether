@@ -121,11 +121,17 @@ namespace ActiveTogether.Services.Services
                 AddCity(s.CityId, SearchWeight);
             }
 
-            var totalSignals = userReservations.Count + userViews.Count + userSearches.Count;
+            // Pretraga samo po nazivu (bez kategorije/grada) ne ulazi u category/city
+            // scoring (AddCategory/AddCity je no-op bez Id-a), pa se ni ne broji kao
+            // stvaran personalizacijski signal - inače bi korisnik izašao iz cold-starta
+            // a da algoritam pritom nema ništa iskoristivo iz te pretrage.
+            var searchSignalCount = userSearches.Count(s => s.CategoryId.HasValue || s.CityId.HasValue);
+            var totalSignals = userReservations.Count + userViews.Count + searchSignalCount;
             var isColdStart = totalSignals == 0;
 
             var maxCategoryWeight = categoryWeights.Count > 0 ? categoryWeights.Values.Max() : 0;
             var maxCityWeight = cityWeights.Count > 0 ? cityWeights.Values.Max() : 0;
+            var hasPriceSignal = freeWeight > 0 || premiumWeight > 0;
             var preferFree = freeWeight >= premiumWeight;
 
             var maxReservedCount = candidateIds.Count > 0 ? candidateIds.Select(id => reservedCounts.GetValueOrDefault(id)).DefaultIfEmpty(0).Max() : 0;
@@ -151,7 +157,10 @@ namespace ActiveTogether.Services.Services
                     categoryComponent = maxCategoryWeight > 0 ? categoryWeights.GetValueOrDefault(a.CategoryId) / maxCategoryWeight : 0;
                     var cityId = a.Location?.CityId;
                     cityComponent = cityId.HasValue && maxCityWeight > 0 ? cityWeights.GetValueOrDefault(cityId.Value) / maxCityWeight : 0;
-                    priceComponent = (a.IsFree == preferFree) ? 1.0 : 0.0;
+                    // Bez ijednog free/premium signala (npr. korisnik ima samo
+                    // kategorijske/gradske signale) preferFree je proizvoljan default
+                    // (0 >= 0), pa price komponenta ne smije uticati na rezultat.
+                    priceComponent = hasPriceSignal && a.IsFree == preferFree ? 1.0 : 0.0;
                 }
 
                 var contentScore = 0.5 * categoryComponent + 0.3 * cityComponent + 0.2 * priceComponent;
@@ -161,8 +170,12 @@ namespace ActiveTogether.Services.Services
                 string reason;
                 if (isColdStart)
                 {
+                    // popularityScore je globalan (nije računat po gradu), pa se u cold-startu
+                    // razlog ne smije predstaviti kao "popularno u gradu" samo zato što se
+                    // aktivnost nalazi u istom gradu kao korisnik - to je lokacijska činjenica,
+                    // ne izračunata gradska popularnost.
                     reason = (user?.CityId.HasValue == true && a.Location?.CityId == user.CityId)
-                        ? "Popularno u tvom gradu"
+                        ? "Aktivnost u tvom gradu"
                         : "Popularno na platformi";
                 }
                 else if (categoryComponent * 0.5 >= cityComponent * 0.3 && categoryComponent > 0)

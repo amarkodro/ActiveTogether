@@ -20,7 +20,7 @@ Dodatno se računa da li korisnik preferira besplatne ili plaćene aktivnosti (`
 
 ## 2. Cold-start problem
 
-Ako korisnik nema nijedan zabilježen signal (nema rezervacija, pregleda, niti pretraga), sistem prelazi u **cold-start mod**: preporuke se baziraju isključivo na popularnosti (vidi tačku 3), bez ličnog konteksta. Razlog prikazan korisniku je tada "Popularno u tvom gradu" (ako se poklapa grad korisnika) ili "Popularno na platformi".
+Ako korisnik nema nijedan zabilježen signal koji stvarno ulazi u scoring (nema rezervacija, pregleda, niti pretrage sa odabranom kategorijom/gradom — pretraga samo po nazivu se ne broji, jer ne doprinosi category/city preferencijama), sistem prelazi u **cold-start mod**: preporuke se baziraju isključivo na popularnosti (vidi tačku 3), bez ličnog konteksta. Razlog prikazan korisniku je tada "Aktivnost u tvom gradu" (ako se poklapa grad korisnika — čisto lokacijska činjenica, popularityScore nije računat po gradu) ili "Popularno na platformi".
 
 ## 3. Popularity Score
 
@@ -39,7 +39,7 @@ popularityScore = 0.4 * reservedNorm + 0.3 * ratingNorm + 0.2 * trendNorm + 0.1 
 
 - **categoryComponent** — koliko se kategorija aktivnosti poklapa sa korisnikovim najjačim preferencijama kategorije (normalizovano na maksimum).
 - **cityComponent** — isto, ali za grad lokacije aktivnosti.
-- **priceComponent** — 1.0 ako se tip aktivnosti (besplatna/plaćena) poklapa sa korisnikovom preferencijom, inače 0.
+- **priceComponent** — 1.0 ako se tip aktivnosti (besplatna/plaćena) poklapa sa korisnikovom preferencijom, inače 0. Ako korisnik nema nijedan free/premium signal (`freeWeight == premiumWeight == 0`), komponenta je uvijek 0 — bez toga bi default `preferFree = true` neopravdano favorizovao besplatne aktivnosti.
 
 ```
 contentScore = 0.5 * categoryComponent + 0.3 * cityComponent + 0.2 * priceComponent
@@ -67,7 +67,7 @@ Prije rangiranja, iz skupa kandidata se izbacuju:
 ## 7. Objašnjenje preporuke (Reason)
 
 Svakoj preporučenoj aktivnosti se dodjeljuje kratko tekstualno objašnjenje ("Reason") koje se prikazuje korisniku u aplikaciji:
-- **Cold-start:** "Popularno u tvom gradu" (ako se grad poklapa) ili "Popularno na platformi".
+- **Cold-start:** "Aktivnost u tvom gradu" (ako se grad poklapa — lokacijska činjenica, ne izračunata popularnost po gradu) ili "Popularno na platformi".
 - **Sa signalima:** ako je uticaj preferencije kategorije dominantan → "Na osnovu tvojih aktivnosti u kategoriji {naziv}"; ako je uticaj preferencije grada dominantan → "Popularno u tvom gradu"; inače → "Popularno na platformi".
 
 ## 8. Endpoint
