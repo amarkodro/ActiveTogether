@@ -154,6 +154,9 @@ namespace ActiveTogether.Services.Services
             if (token is null || token.IsRevoked || token.ExpiresAt <= DateTime.UtcNow)
                 throw new UnauthorizedAccessException("Refresh token nije validan ili je istekao.");
 
+            if (!token.User!.IsActive)
+                throw new UnauthorizedAccessException("Korisnički nalog je blokiran.");
+
             token.IsRevoked = true;
 
             var (accessToken, expiresAt) = GenerateAccessToken(token.User!);

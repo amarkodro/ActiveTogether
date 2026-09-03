@@ -104,6 +104,15 @@ namespace ActiveTogether.Services.Services
             user.IsActive = isActive;
             user.UpdatedAt = DateTime.UtcNow;
 
+            if (!isActive)
+            {
+                // Blokiranje naloga mora prekinuti i već otvorenu sesiju - u suprotnom
+                // korisnik i dalje može refreshovati access token dok mu refresh token važi.
+                await _context.RefreshTokens
+                    .Where(rt => rt.UserId == id && !rt.IsRevoked)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(rt => rt.IsRevoked, true));
+            }
+
             await _context.SaveChangesAsync();
         }
 
