@@ -197,24 +197,15 @@ namespace ActiveTogether.Services.Database
             // izostavio "Z" sufiks, a Flutter strana bi UTC vrijednost pogrešno protumačila kao
             // lokalno vrijeme. Cijela aplikacija dosljedno koristi DateTime.UtcNow, pa se svako
             // Unspecified vrijeme pri čitanju označava kao UTC, a Local se eksplicitno konvertuje.
+            // Switch izraz ne smije stajati direktno u lambdi koja se predaje ValueConverter-u
+            // (to je expression tree - CS8514), zato je logika izdvojena u obične statičke
+            // metode koje se samo pozivaju iz lambde.
             var utcConverter = new ValueConverter<DateTime, DateTime>(
-                v => v.Kind switch
-                {
-                    DateTimeKind.Utc => v,
-                    DateTimeKind.Local => v.ToUniversalTime(),
-                    _ => DateTime.SpecifyKind(v, DateTimeKind.Utc)
-                },
+                v => NormalizeToUtc(v),
                 v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
 
             var nullableUtcConverter = new ValueConverter<DateTime?, DateTime?>(
-                v => v.HasValue
-                    ? v.Value.Kind switch
-                    {
-                        DateTimeKind.Utc => v.Value,
-                        DateTimeKind.Local => v.Value.ToUniversalTime(),
-                        _ => DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)
-                    }
-                    : v,
+                v => NormalizeToUtcNullable(v),
                 v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
 
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -227,6 +218,24 @@ namespace ActiveTogether.Services.Database
                         property.SetValueConverter(nullableUtcConverter);
                 }
             }
+        }
+
+        private static DateTime NormalizeToUtc(DateTime v)
+        {
+            switch (v.Kind)
+            {
+                case DateTimeKind.Utc:
+                    return v;
+                case DateTimeKind.Local:
+                    return v.ToUniversalTime();
+                default:
+                    return DateTime.SpecifyKind(v, DateTimeKind.Utc);
+            }
+        }
+
+        private static DateTime? NormalizeToUtcNullable(DateTime? v)
+        {
+            return v.HasValue ? NormalizeToUtc(v.Value) : v;
         }
     }
 }
