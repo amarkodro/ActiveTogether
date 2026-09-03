@@ -96,63 +96,68 @@ namespace ActiveTogether.Services.Services
             var startOfWeek = today.AddDays(-diff);
             var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
-            var myActivities = await _context.Activities
-                .Where(a => a.OrganizerId == organizerId)
-                .ToListAsync();
+            var organizerActivities = _context.Activities
+                .Where(a => a.OrganizerId == organizerId);
 
-            var activeActivitiesCount = myActivities.Count(a => a.Status == ActivityStatus.Active);
-            var newActivitiesThisWeek = myActivities.Count(a => a.CreatedAt >= startOfWeek);
+            var activeActivitiesCount = await organizerActivities
+                .CountAsync(a => a.Status == ActivityStatus.Active);
+            var newActivitiesThisWeek = await organizerActivities
+                .CountAsync(a => a.CreatedAt >= startOfWeek);
 
-            var activityIds = myActivities.Select(a => a.Id).ToList();
+            var organizerReservations = _context.Reservations
+                .Where(r => r.Activity!.OrganizerId == organizerId && r.Status != ReservationStatus.Cancelled);
 
-            var reservations = await _context.Reservations
-                .Include(r => r.User)
-                .Where(r => activityIds.Contains(r.ActivityId) && r.Status != ReservationStatus.Cancelled)
-                .ToListAsync();
-
-            var totalParticipants = reservations.Count;
-            var newParticipantsThisWeek = reservations.Count(r => r.CreatedAt >= startOfWeek);
+            var totalParticipants = await organizerReservations.CountAsync();
+            var newParticipantsThisWeek = await organizerReservations
+                .CountAsync(r => r.CreatedAt >= startOfWeek);
 
             var monthlyRevenue = await (
                 from p in _context.Payments
                 join r in _context.Reservations on p.ReservationId equals r.Id
-                where activityIds.Contains(r.ActivityId)
+                where r.Activity!.OrganizerId == organizerId
                    && p.Status == PaymentStatus.Completed
                    && p.PaidAt != null && p.PaidAt >= startOfMonth
                 select p.Amount
             ).SumAsync();
 
-            var ratings = await _context.Ratings
-                .Where(r => activityIds.Contains(r.ActivityId))
-                .ToListAsync();
-            var averageRating = ratings.Count > 0 ? ratings.Average(r => r.Score) : 0;
+            var averageRating = await _context.Ratings
+                .Where(r => r.Activity!.OrganizerId == organizerId)
+                .Select(r => (double?)r.Score)
+                .AverageAsync() ?? 0;
 
-            var reservedCounts = reservations
-                .GroupBy(r => r.ActivityId)
-                .ToDictionary(g => g.Key, g => g.Count());
-
-            var activityFillRates = myActivities
-                .Where(a => a.Status == ActivityStatus.Active)
-                .Select(a => new ActivityFillRateItem
+            // Reserved count se izračuna u SQL-u (jedan correlated subquery po aktivnosti);
+            // FillRatio je trivijalno dijeljenje pa se radi nad već malim, filtriranim
+            // rezultatom (samo organizatorove aktivne aktivnosti), ne nad cijelim skupom.
+            var activityFillRates = (await organizerActivities
+                    .Where(a => a.Status == ActivityStatus.Active)
+                    .Select(a => new
+                    {
+                        a.Name,
+                        a.Capacity,
+                        ReservedCount = a.Reservations.Count(r => r.Status != ReservationStatus.Cancelled)
+                    })
+                    .ToListAsync())
+                .Select(x => new ActivityFillRateItem
                 {
-                    ActivityName = a.Name,
-                    ReservedCount = reservedCounts.GetValueOrDefault(a.Id),
-                    Capacity = a.Capacity,
-                    FillRatio = a.Capacity == 0 ? 0 : (double)reservedCounts.GetValueOrDefault(a.Id) / a.Capacity
+                    ActivityName = x.Name,
+                    ReservedCount = x.ReservedCount,
+                    Capacity = x.Capacity,
+                    FillRatio = x.Capacity == 0 ? 0 : (double)x.ReservedCount / x.Capacity
                 })
                 .OrderByDescending(x => x.FillRatio)
                 .ToList();
 
-            var recentReservations = reservations
+            var recentReservations = await organizerReservations
+                .Include(r => r.User)
                 .OrderByDescending(r => r.CreatedAt)
                 .Take(5)
                 .Select(r => new RecentReservationItem
                 {
-                    UserName = r.User != null ? $"{r.User.FirstName} {r.User.LastName}" : "",
+                    UserName = r.User != null ? r.User.FirstName + " " + r.User.LastName : "",
                     CreatedAt = r.CreatedAt,
                     Status = r.Status.ToString()
                 })
-                .ToList();
+                .ToListAsync();
 
             return new OrganizerDashboardResponse
             {

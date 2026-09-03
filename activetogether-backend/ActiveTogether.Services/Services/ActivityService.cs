@@ -135,9 +135,13 @@ namespace ActiveTogether.Services.Services
             var reservedCount = await _context.Reservations
                 .CountAsync(r => r.ActivityId == id && r.Status != ReservationStatus.Cancelled);
 
-            var ratings = await _context.Ratings.Where(r => r.ActivityId == id).ToListAsync();
-            var averageRating = ratings.Count > 0 ? ratings.Average(r => r.Score) : (double?)null;
-            var ratingCount = ratings.Count;
+            var ratingStats = await _context.Ratings
+                .Where(r => r.ActivityId == id)
+                .GroupBy(r => r.ActivityId)
+                .Select(g => new { Average = g.Average(x => x.Score), Count = g.Count() })
+                .FirstOrDefaultAsync();
+            var averageRating = ratingStats?.Average;
+            var ratingCount = ratingStats?.Count ?? 0;
 
             if (currentUserId.HasValue)
             {
@@ -166,9 +170,13 @@ namespace ActiveTogether.Services.Services
             var reservedCount = await _context.Reservations
                 .CountAsync(r => r.ActivityId == id && r.Status != ReservationStatus.Cancelled);
 
-            var ratings = await _context.Ratings.Where(r => r.ActivityId == id).ToListAsync();
-            var averageRating = ratings.Count > 0 ? ratings.Average(r => r.Score) : (double?)null;
-            var ratingCount = ratings.Count;
+            var ratingStats = await _context.Ratings
+                .Where(r => r.ActivityId == id)
+                .GroupBy(r => r.ActivityId)
+                .Select(g => new { Average = g.Average(x => x.Score), Count = g.Count() })
+                .FirstOrDefaultAsync();
+            var averageRating = ratingStats?.Average;
+            var ratingCount = ratingStats?.Count ?? 0;
 
             return MapToResponse(activity, reservedCount, averageRating, ratingCount);
         }
