@@ -34,7 +34,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   String _formatCurrency(double amount) {
-    return '${NumberFormat('#,##0.00').format(amount)} KM';
+    return '${NumberFormat('#,##0.00').format(amount)} EUR';
   }
 
   @override

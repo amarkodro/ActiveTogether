@@ -48,7 +48,7 @@ class ReservationDetailsDialog extends StatelessWidget {
               const SizedBox(height: 8),
               _row(
                 'Iznos',
-                '${reservation.payment!.amount.toStringAsFixed(2)} KM',
+                '${reservation.payment!.amount.toStringAsFixed(2)} EUR',
               ),
               _row('Status plaćanja', reservation.payment!.status),
               if (reservation.payment!.paidAt != null)

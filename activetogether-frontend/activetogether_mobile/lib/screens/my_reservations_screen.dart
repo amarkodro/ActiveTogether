@@ -328,7 +328,7 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
                   if (reservation.payment != null) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Plaćeno: ${reservation.payment!.amount.toStringAsFixed(0)} KM',
+                      'Plaćeno: ${reservation.payment!.amount.toStringAsFixed(2)} EUR',
                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],

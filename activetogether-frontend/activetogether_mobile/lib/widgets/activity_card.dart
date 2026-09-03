@@ -72,7 +72,7 @@ class ActivityCard extends StatelessWidget {
                     child: Text(
                       activity.isFree
                           ? 'Besplatno'
-                          : '${activity.price?.toStringAsFixed(0)} KM',
+                          : '${activity.price?.toStringAsFixed(2)} EUR',
                       style: TextStyle(
                         color: activity.isFree
                             ? AppColors.success

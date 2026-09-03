@@ -483,7 +483,7 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
                       if (!_isFree) ...[
                         const SizedBox(height: 14),
                         const Text(
-                          'Cijena (KM)',
+                          'Cijena (EUR)',
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 6),

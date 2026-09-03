@@ -33,7 +33,7 @@ class _OrganizerDashboardScreenState extends State<OrganizerDashboardScreen> {
   void _retry() => setState(() => _future = _load());
 
   String _formatCurrency(double amount) =>
-      '${NumberFormat('#,##0.00').format(amount)} KM';
+      '${NumberFormat('#,##0.00').format(amount)} EUR';
 
   Color _fillColor(double ratio) {
     if (ratio >= 0.9) return AppColors.danger;

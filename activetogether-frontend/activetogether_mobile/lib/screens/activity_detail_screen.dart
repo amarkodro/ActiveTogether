@@ -335,7 +335,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                           Icons.payments_outlined,
                           activity.isFree
                               ? 'Besplatno'
-                              : '${activity.price?.toStringAsFixed(0)} KM',
+                              : '${activity.price?.toStringAsFixed(2)} EUR',
                           valueColor: activity.isFree
                               ? AppColors.success
                               : AppColors.warning,

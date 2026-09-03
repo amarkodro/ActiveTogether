@@ -402,7 +402,7 @@ class _ActivityFormDialogState extends State<ActivityFormDialog> {
                       if (!_isFree) ...[
                         const SizedBox(height: 6),
                         const Text(
-                          'Cijena (KM)',
+                          'Cijena (EUR)',
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 6),
