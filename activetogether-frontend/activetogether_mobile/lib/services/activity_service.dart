@@ -114,4 +114,8 @@ class ActivityService {
   Future<void> complete(int id) async {
     await _apiClient.dio.put('/api/Activities/$id/complete');
   }
+
+  Future<void> cancel(int id) async {
+    await _apiClient.dio.put('/api/Activities/$id/cancel');
+  }
 }

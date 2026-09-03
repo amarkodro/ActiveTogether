@@ -8,6 +8,7 @@ import '../widgets/activity_card.dart';
 import 'activity_detail_screen.dart';
 import '../providers/notification_provider.dart';
 import 'notifications_screen.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -114,7 +115,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 readOnly: true,
                 onTap: () {
-                  // TODO: navigacija na Search ekran
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SearchScreen(
+                        initialCategoryName: _selectedCategory == 'Sve'
+                            ? null
+                            : _selectedCategory,
+                      ),
+                    ),
+                  );
                 },
               ),
               const SizedBox(height: 12),

@@ -13,7 +13,14 @@ import '../widgets/activity_card.dart';
 import 'activity_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  /// Početni tekst pretrage (npr. prenesen sa početnog ekrana).
+  final String? initialQuery;
+
+  /// Naziv kategorije već odabrane na početnom ekranu (npr. preko chip filtera),
+  /// koji se ovdje mapira na stvarni CategoryId nakon učitavanja kategorija.
+  final String? initialCategoryName;
+
+  const SearchScreen({super.key, this.initialQuery, this.initialCategoryName});
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -38,6 +45,9 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      _searchController.text = widget.initialQuery!;
+    }
     _init();
   }
 
@@ -50,6 +60,19 @@ class _SearchScreenState extends State<SearchScreen> {
         _categories = categories;
         _cities = cities;
       });
+
+      if (widget.initialCategoryName != null) {
+        final match = categories
+            .where(
+              (c) =>
+                  c.name.toLowerCase() ==
+                  widget.initialCategoryName!.toLowerCase(),
+            )
+            .toList();
+        if (match.isNotEmpty) {
+          setState(() => _selectedCategoryId = match.first.id);
+        }
+      }
     } catch (_) {
       // referentni podaci nisu kritični za pretragu, nastavljamo bez njih ako ne uspiju
     }
