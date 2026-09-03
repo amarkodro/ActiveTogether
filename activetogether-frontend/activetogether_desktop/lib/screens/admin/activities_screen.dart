@@ -8,6 +8,7 @@ import '../../services/activity_service.dart';
 import '../../services/api_client.dart';
 import '../../services/reference_data_service.dart';
 import '../../theme/app_colors.dart';
+import 'widgets/activity_participants_dialog.dart';
 import 'widgets/edit_activity_dialog.dart';
 
 class ActivitiesScreen extends StatefulWidget {
@@ -78,6 +79,16 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
       builder: (_) => EditActivityDialog(activity: activity),
     );
     if (result == true) _refresh();
+  }
+
+  void _showParticipants(ActivityListItem activity) {
+    showDialog(
+      context: context,
+      builder: (_) => ActivityParticipantsDialog(
+        activityId: activity.id,
+        activityName: activity.name,
+      ),
+    );
   }
 
   Future<void> _cancelActivity(ActivityListItem activity) async {
@@ -374,7 +385,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
           Expanded(flex: 2, child: Text('DATUM', style: style)),
           Expanded(flex: 2, child: Text('KAPACITET', style: style)),
           Expanded(flex: 2, child: Text('STATUS', style: style)),
-          SizedBox(width: 90, child: Text('AKCIJE', style: style)),
+          SizedBox(width: 130, child: Text('AKCIJE', style: style)),
         ],
       ),
     );
@@ -486,9 +497,14 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
             ),
           ),
           SizedBox(
-            width: 90,
+            width: 130,
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.people_outline, size: 20),
+                  tooltip: 'Učesnici',
+                  onPressed: () => _showParticipants(activity),
+                ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 20),
                   tooltip: 'Uredi',

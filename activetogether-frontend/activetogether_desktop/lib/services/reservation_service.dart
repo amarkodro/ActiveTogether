@@ -37,6 +37,26 @@ class ReservationService {
     );
   }
 
+  Future<PagedResult<ReservationItem>> getForActivity(
+    int activityId, {
+    String? status,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final response = await _apiClient.dio.get(
+      '/api/Reservations/activity/$activityId',
+      queryParameters: {
+        if (status != null) 'status': status,
+        'page': page,
+        'pageSize': pageSize,
+      },
+    );
+    return PagedResult.fromJson(
+      response.data as Map<String, dynamic>,
+      (json) => ReservationItem.fromJson(json),
+    );
+  }
+
   Future<PagedResult<ReservationItem>> getForOrganizer({
     int? activityId,
     String? status,
