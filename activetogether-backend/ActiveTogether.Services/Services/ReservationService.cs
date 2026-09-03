@@ -34,6 +34,7 @@ namespace ActiveTogether.Services.Services
             var query = _context.Reservations
                 .Include(r => r.Activity)
                 .Include(r => r.User)
+                .Include(r => r.Payment)
                 .Where(r => r.UserId == userId);
 
             query = ApplyCommonFilters(query, search);
@@ -44,6 +45,7 @@ namespace ActiveTogether.Services.Services
             var query = _context.Reservations
                 .Include(r => r.Activity)
                 .Include(r => r.User)
+                .Include(r => r.Payment)
                 .Where(r => r.Activity!.OrganizerId == organizerId);
 
             query = ApplyCommonFilters(query, search);
@@ -63,6 +65,7 @@ namespace ActiveTogether.Services.Services
             var query = _context.Reservations
                 .Include(r => r.Activity)
                 .Include(r => r.User)
+                .Include(r => r.Payment)
                 .Where(r => r.ActivityId == activityId);
 
             query = ApplyCommonFilters(query, search);
@@ -75,6 +78,7 @@ namespace ActiveTogether.Services.Services
             var query = _context.Reservations
                 .Include(r => r.Activity)
                 .Include(r => r.User)
+                .Include(r => r.Payment)
                 .AsQueryable();
 
             query = ApplyCommonFilters(query, search);
@@ -121,12 +125,29 @@ namespace ActiveTogether.Services.Services
             _context.Reservations.Add(reservation);
             await _context.SaveChangesAsync();
 
-            var response = await GetByIdWithMappingAsync(reservation.Id);
+            PaymentInfoResponse? payment = null;
 
             if (!activity.IsFree)
             {
-                response.Payment = await _paymentService.CreatePaymentIntentAsync(reservation.Id, activity.Price ?? 0);
+                try
+                {
+                    payment = await _paymentService.CreatePaymentIntentAsync(reservation.Id, activity.Price ?? 0);
+                }
+                catch (Exception)
+                {
+                    // Kompenzacija: inicijalizacija plaćanja nije uspjela, pa rezervacija
+                    // ne smije ostati u bazi kao "Pending" - blokirala bi kapacitet i
+                    // spriječila korisnika da ponovo pokuša, a nikad nije dobio funkcionalan
+                    // payment tok.
+                    _context.Reservations.Remove(reservation);
+                    await _context.SaveChangesAsync();
+
+                    throw new BusinessException("Inicijalizacija plaćanja nije uspjela. Pokušajte ponovo napraviti rezervaciju.");
+                }
             }
+
+            var response = await GetByIdWithMappingAsync(reservation.Id);
+            response.Payment = payment;
 
             await _notificationService.NotifyAsync(
                 activity.OrganizerId,

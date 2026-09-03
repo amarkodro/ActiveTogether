@@ -328,8 +328,13 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
                   if (reservation.payment != null) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Plaćeno: ${reservation.payment!.amount.toStringAsFixed(2)} EUR',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      '${_paymentStatusLabel(reservation.payment!.status)}: '
+                      '${reservation.payment!.amount.toStringAsFixed(2)} EUR',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _paymentStatusColor(reservation.payment!.status),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 10),
@@ -382,5 +387,33 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
         },
       ),
     );
+  }
+
+  String _paymentStatusLabel(String status) {
+    switch (status) {
+      case 'Completed':
+        return 'Plaćeno';
+      case 'Refunded':
+        return 'Refundirano';
+      case 'Failed':
+        return 'Plaćanje neuspješno';
+      case 'Pending':
+      default:
+        return 'Plaćanje na čekanju';
+    }
+  }
+
+  Color _paymentStatusColor(String status) {
+    switch (status) {
+      case 'Completed':
+        return Colors.green;
+      case 'Refunded':
+        return Colors.blueGrey;
+      case 'Failed':
+        return Colors.red;
+      case 'Pending':
+      default:
+        return Colors.orange;
+    }
   }
 }
