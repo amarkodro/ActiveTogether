@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_client.dart';
 import '../../services/report_service.dart';
@@ -94,6 +95,7 @@ class _ReportCardState extends State<_ReportCard> {
   DateTime? _dateFrom;
   DateTime? _dateTo;
   bool _downloading = false;
+  bool _printing = false;
   String? _errorMessage;
 
   Future<void> _pickDate({required bool isFrom}) async {
@@ -143,6 +145,28 @@ class _ReportCardState extends State<_ReportCard> {
       );
     } finally {
       if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  Future<void> _print() async {
+    setState(() {
+      _printing = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final bytes = await widget.onDownload(_dateFrom, _dateTo);
+      await Printing.layoutPdf(
+        onLayout: (_) async => bytes,
+        name: widget.fileName,
+      );
+    } catch (e) {
+      setState(
+        () => _errorMessage =
+            'Došlo je do greške prilikom generisanja izvještaja.',
+      );
+    } finally {
+      if (mounted) setState(() => _printing = false);
     }
   }
 
@@ -222,22 +246,39 @@ class _ReportCardState extends State<_ReportCard> {
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _downloading ? null : _download,
-              icon: _downloading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.download),
-              label: Text(_downloading ? 'Generisanje...' : 'Preuzmi PDF'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: (_downloading || _printing) ? null : _download,
+                  icon: _downloading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.download),
+                  label: Text(_downloading ? 'Generisanje...' : 'Preuzmi PDF'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: (_downloading || _printing) ? null : _print,
+                  icon: _printing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.print),
+                  label: Text(_printing ? 'Generisanje...' : 'Štampaj'),
+                ),
+              ),
+            ],
           ),
           if (_errorMessage != null) ...[
             const SizedBox(height: 10),

@@ -31,8 +31,10 @@ namespace ActiveTogether.Services.Services
             if (dateFrom.HasValue)
                 query = query.Where(a => a.DateTime >= dateFrom.Value);
 
+            // Exclusive gornja granica (+1 dan) da bi "Do" datum bio uključen cijeli dan,
+            // umjesto da <= dateTo odsiječe zapise nakon ponoći tog dana.
             if (dateTo.HasValue)
-                query = query.Where(a => a.DateTime <= dateTo.Value);
+                query = query.Where(a => a.DateTime < dateTo.Value.AddDays(1));
 
             var activities = await query.ToListAsync();
             var activityIds = activities.Select(a => a.Id).ToList();
@@ -138,8 +140,10 @@ namespace ActiveTogether.Services.Services
             if (dateFrom.HasValue)
                 reservationQuery = reservationQuery.Where(r => r.CreatedAt >= dateFrom.Value);
 
+            // Exclusive gornja granica (+1 dan) da bi "Do" datum bio uključen cijeli dan,
+            // umjesto da <= dateTo odsiječe zapise nakon ponoći tog dana.
             if (dateTo.HasValue)
-                reservationQuery = reservationQuery.Where(r => r.CreatedAt <= dateTo.Value);
+                reservationQuery = reservationQuery.Where(r => r.CreatedAt < dateTo.Value.AddDays(1));
 
             var reservationStats = await reservationQuery
                 .GroupBy(r => r.UserId)
