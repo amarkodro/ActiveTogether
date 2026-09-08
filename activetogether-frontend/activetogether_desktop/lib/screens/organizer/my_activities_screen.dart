@@ -8,6 +8,7 @@ import '../../services/activity_service.dart';
 import '../../services/api_client.dart';
 import '../../services/reference_data_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/activity_ratings_dialog.dart';
 import 'widgets/activity_form_dialog.dart';
 
 class MyActivitiesScreen extends StatefulWidget {
@@ -66,6 +67,16 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen> {
       builder: (_) => const ActivityFormDialog(),
     );
     if (result == true) _refresh();
+  }
+
+  void _showRatings(ActivityListItem activity) {
+    showDialog(
+      context: context,
+      builder: (_) => ActivityRatingsDialog(
+        activityId: activity.id,
+        activityName: activity.name,
+      ),
+    );
   }
 
   Future<void> _editActivity(ActivityListItem activity) async {
@@ -404,7 +415,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen> {
           Expanded(flex: 2, child: Text('DATUM', style: style)),
           Expanded(flex: 2, child: Text('KAPACITET', style: style)),
           Expanded(flex: 2, child: Text('STATUS', style: style)),
-          SizedBox(width: 120, child: Text('AKCIJE', style: style)),
+          SizedBox(width: 160, child: Text('AKCIJE', style: style)),
         ],
       ),
     );
@@ -504,7 +515,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen> {
             ),
           ),
           SizedBox(
-            width: 120,
+            width: 160,
             child: Row(
               children: [
                 if (canComplete)
@@ -514,6 +525,11 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen> {
                     tooltip: 'Označi kao završeno',
                     onPressed: () => _completeActivity(activity),
                   ),
+                IconButton(
+                  icon: const Icon(Icons.star_outline, size: 20),
+                  tooltip: 'Ocjene i komentari',
+                  onPressed: () => _showRatings(activity),
+                ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 20),
                   tooltip: 'Uredi',

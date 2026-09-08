@@ -14,6 +14,39 @@ namespace ActiveTogether.Services.Services
         private readonly ActiveTogetherDbContext _context;
         private readonly byte[] _logoBytes;
 
+        // DateTime.ToLocalTime() zavisi od vremenske zone servera na kojem API radi,
+        // što nije pouzdano (server može biti podešen na UTC bez obzira na to gdje se
+        // aplikacija stvarno koristi). Aplikacija je namijenjena BiH tržištu, pa se za
+        // prikaz u izvještajima eksplicitno koristi Sarajevo/BOS vremenska zona, bez
+        // obzira na OS podešavanje servera. Windows i Linux koriste različite ID-jeve
+        // za istu zonu, zato se probaju oba.
+        private static readonly TimeZoneInfo DisplayTimeZone = ResolveDisplayTimeZone();
+
+        private static TimeZoneInfo ResolveDisplayTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Central European Standard Time"); // Windows ID
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                try
+                {
+                    return TimeZoneInfo.FindSystemTimeZoneById("Europe/Sarajevo"); // Linux/Docker (IANA) ID
+                }
+                catch
+                {
+                    return TimeZoneInfo.Utc;
+                }
+            }
+        }
+
+        private static DateTime ToDisplayTime(DateTime utcValue)
+        {
+            var utc = DateTime.SpecifyKind(utcValue, DateTimeKind.Utc);
+            return TimeZoneInfo.ConvertTimeFromUtc(utc, DisplayTimeZone);
+        }
+
         public ReportService(ActiveTogetherDbContext context)
         {
             _context = context;
@@ -81,8 +114,8 @@ namespace ActiveTogether.Services.Services
                         row.RelativeItem().PaddingLeft(_logoBytes.Length > 0 ? 10 : 0).Column(col =>
                         {
                             col.Item().Text("ActiveTogether - Izvještaj: Popularnost aktivnosti").FontSize(16).Bold();
-                            col.Item().Text($"Period: {(dateFrom?.ToString("dd.MM.yyyy") ?? "-")} — {(dateTo?.ToString("dd.MM.yyyy") ?? "-")}").FontSize(10);
-                            col.Item().Text($"Generisano: {DateTime.UtcNow:dd.MM.yyyy HH:mm}").FontSize(8);
+                            col.Item().Text($"Period: {(dateFrom.HasValue ? ToDisplayTime(dateFrom.Value).ToString("dd.MM.yyyy") : "-")} — {(dateTo.HasValue ? ToDisplayTime(dateTo.Value).ToString("dd.MM.yyyy") : "-")}").FontSize(10);
+                            col.Item().Text($"Generisano: {ToDisplayTime(DateTime.UtcNow):dd.MM.yyyy HH:mm}").FontSize(8);
                             col.Item().PaddingBottom(10);
                         });
                     });
@@ -176,12 +209,18 @@ namespace ActiveTogether.Services.Services
                     page.Margin(30);
                     page.DefaultTextStyle(x => x.FontSize(9));
 
-                    page.Header().Column(col =>
+                    page.Header().Row(row =>
                     {
-                        col.Item().Text("ActiveTogether — Izvještaj: Aktivnost korisnika").FontSize(16).Bold();
-                        col.Item().Text($"Period: {(dateFrom?.ToString("dd.MM.yyyy") ?? "-")} — {(dateTo?.ToString("dd.MM.yyyy") ?? "-")}").FontSize(10);
-                        col.Item().Text($"Generisano: {DateTime.UtcNow:dd.MM.yyyy HH:mm}").FontSize(8);
-                        col.Item().PaddingBottom(10);
+                        if (_logoBytes.Length > 0)
+                            row.ConstantItem(70).Height(70).Image(_logoBytes).FitArea();
+
+                        row.RelativeItem().PaddingLeft(_logoBytes.Length > 0 ? 10 : 0).Column(col =>
+                        {
+                            col.Item().Text("ActiveTogether - Izvještaj: Aktivnost korisnika").FontSize(16).Bold();
+                            col.Item().Text($"Period: {(dateFrom.HasValue ? ToDisplayTime(dateFrom.Value).ToString("dd.MM.yyyy") : "-")} — {(dateTo.HasValue ? ToDisplayTime(dateTo.Value).ToString("dd.MM.yyyy") : "-")}").FontSize(10);
+                            col.Item().Text($"Generisano: {ToDisplayTime(DateTime.UtcNow):dd.MM.yyyy HH:mm}").FontSize(8);
+                            col.Item().PaddingBottom(10);
+                        });
                     });
 
                     page.Content().Table(table =>

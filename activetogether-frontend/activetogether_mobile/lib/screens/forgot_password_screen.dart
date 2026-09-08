@@ -173,8 +173,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Kod je poslan na $_emailController.text ako nalog postoji. Unesite kod i novu lozinku.'
-                .replaceAll(r'$_emailController.text', _emailController.text),
+            'Kod je poslan na ${_emailController.text} ako nalog postoji. Unesite kod i novu lozinku.',
             style: const TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 20),
@@ -205,7 +204,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             decoration: const InputDecoration(border: OutlineInputBorder()),
             validator: (v) {
               if (v == null || v.isEmpty) return 'Nova lozinka je obavezna.';
-              if (v.length < 6) return 'Lozinka mora imati bar 6 karaktera.';
+              if (v.length < 8 ||
+                  !RegExp(r'^(?=.*[A-Za-z])(?=.*\d).+$').hasMatch(v)) {
+                return 'Lozinka mora imati najmanje 8 karaktera, uz bar jedno slovo i jedan broj.';
+              }
               return null;
             },
           ),

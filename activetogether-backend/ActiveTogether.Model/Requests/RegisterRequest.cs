@@ -16,7 +16,8 @@ namespace ActiveTogether.Model.Requests
         [Required, MaxLength(150), EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        [Required, MinLength(6), MaxLength(100)]
+        [Required, MinLength(8), MaxLength(100)]
+        [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).+$", ErrorMessage = "Lozinka mora sadržavati bar jedno slovo i jedan broj.")]
         public string Password { get; set; } = string.Empty;
 
         [MaxLength(30)]

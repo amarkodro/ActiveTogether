@@ -7,6 +7,7 @@ import '../../providers/notification_provider.dart';
 import '../../services/activity_service.dart';
 import '../../services/api_client.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/activity_ratings_dialog.dart';
 import '../notifications_screen.dart';
 import 'activity_form_screen.dart';
 import 'participants_screen.dart';
@@ -140,6 +141,16 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
         SnackBar(content: Text(_errorText(e, 'Otkazivanje nije uspjelo.'))),
       );
     }
+  }
+
+  void _showRatings(Activity activity) {
+    showDialog(
+      context: context,
+      builder: (_) => ActivityRatingsDialog(
+        activityId: activity.id,
+        activityName: activity.name,
+      ),
+    );
   }
 
   void _openParticipants(Activity activity) {
@@ -382,6 +393,11 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                         icon: const Icon(Icons.people_outline),
                         tooltip: 'Učesnici',
                         onPressed: () => _openParticipants(activity),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.star_outline),
+                        tooltip: 'Ocjene i komentari',
+                        onPressed: () => _showRatings(activity),
                       ),
                       IconButton(
                         icon: const Icon(Icons.edit_outlined),

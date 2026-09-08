@@ -99,8 +99,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Unesite novu lozinku.';
-                    if (v.length < 6)
-                      return 'Lozinka mora imati bar 6 karaktera.';
+                    if (v.length < 8 ||
+                        !RegExp(r'^(?=.*[A-Za-z])(?=.*\d).+$').hasMatch(v)) {
+                      return 'Lozinka mora imati najmanje 8 karaktera, uz bar jedno slovo i jedan broj.';
+                    }
                     return null;
                   },
                 ),

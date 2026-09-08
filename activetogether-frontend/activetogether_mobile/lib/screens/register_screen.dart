@@ -189,8 +189,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Lozinka je obavezna.';
-                    if (v.length < 6)
-                      return 'Lozinka mora imati bar 6 karaktera.';
+                    if (v.length < 8 ||
+                        !RegExp(r'^(?=.*[A-Za-z])(?=.*\d).+$').hasMatch(v)) {
+                      return 'Lozinka mora imati najmanje 8 karaktera, uz bar jedno slovo i jedan broj.';
+                    }
                     return null;
                   },
                 ),

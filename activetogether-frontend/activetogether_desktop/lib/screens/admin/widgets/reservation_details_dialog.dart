@@ -50,7 +50,10 @@ class ReservationDetailsDialog extends StatelessWidget {
                 'Iznos',
                 '${reservation.payment!.amount.toStringAsFixed(2)} EUR',
               ),
-              _row('Status plaćanja', reservation.payment!.status),
+              _row(
+                'Status plaćanja',
+                AppColors.paymentStatusLabel(reservation.payment!.status),
+              ),
               if (reservation.payment!.paidAt != null)
                 _row(
                   'Plaćeno',

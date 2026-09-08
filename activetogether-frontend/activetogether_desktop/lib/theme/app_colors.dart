@@ -83,4 +83,19 @@ class AppColors {
         return status;
     }
   }
+
+  static String paymentStatusLabel(String status) {
+    switch (status) {
+      case 'Completed':
+        return 'Plaćeno';
+      case 'Refunded':
+        return 'Refundirano';
+      case 'Failed':
+        return 'Plaćanje neuspješno';
+      case 'Pending':
+        return 'Na čekanju';
+      default:
+        return status;
+    }
+  }
 }

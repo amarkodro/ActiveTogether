@@ -8,6 +8,7 @@ import '../../services/activity_service.dart';
 import '../../services/api_client.dart';
 import '../../services/reference_data_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/activity_ratings_dialog.dart';
 import 'widgets/activity_participants_dialog.dart';
 import 'widgets/edit_activity_dialog.dart';
 
@@ -85,6 +86,16 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
     showDialog(
       context: context,
       builder: (_) => ActivityParticipantsDialog(
+        activityId: activity.id,
+        activityName: activity.name,
+      ),
+    );
+  }
+
+  void _showRatings(ActivityListItem activity) {
+    showDialog(
+      context: context,
+      builder: (_) => ActivityRatingsDialog(
         activityId: activity.id,
         activityName: activity.name,
       ),
@@ -385,7 +396,7 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
           Expanded(flex: 2, child: Text('DATUM', style: style)),
           Expanded(flex: 2, child: Text('KAPACITET', style: style)),
           Expanded(flex: 2, child: Text('STATUS', style: style)),
-          SizedBox(width: 130, child: Text('AKCIJE', style: style)),
+          SizedBox(width: 170, child: Text('AKCIJE', style: style)),
         ],
       ),
     );
@@ -497,13 +508,18 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
             ),
           ),
           SizedBox(
-            width: 130,
+            width: 170,
             child: Row(
               children: [
                 IconButton(
                   icon: const Icon(Icons.people_outline, size: 20),
                   tooltip: 'Učesnici',
                   onPressed: () => _showParticipants(activity),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.star_outline, size: 20),
+                  tooltip: 'Ocjene i komentari',
+                  onPressed: () => _showRatings(activity),
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 20),
