@@ -268,7 +268,7 @@ class _ParticipantsScreenState extends State<ParticipantsScreen> {
                                                   : () => _confirm(r),
                                             ),
                                             IconButton(
-                                              icon: const Icon(
+                                              icon: Icon(
                                                 Icons.cancel,
                                                 color: r.activityDateTime
                                                         .isAfter(
